@@ -2,6 +2,7 @@ package main
 
 import "fmt"
 
+/* 4,5 */
 func main() {
 	arr := []int{1, 2, 3, 4, 5, -100}
 	fmt.Println(arr)

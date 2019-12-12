@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+/* 1*/
 func main() {
 	/* добавить 1 к каждому элементу slice*/
 	mslice := make([]int, 10)

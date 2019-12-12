@@ -2,6 +2,7 @@ package main
 
 import "fmt"
 
+/* 2,3 */
 func main() {
 	myslice := ([]int{7, 7, 7, 7, 7, 7, 7, 7})[:]
 	tmp := make([]int, len(myslice)+1)
