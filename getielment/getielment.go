@@ -1,3 +1,4 @@
+// задания 6
 package main
 
 import (

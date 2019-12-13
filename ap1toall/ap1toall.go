@@ -1,12 +1,12 @@
+// задания 1
 package main
 
 import (
 	"fmt"
 )
 
-/* 1*/
+
 func main() {
-	/* добавить 1 к каждому элементу slice*/
 	mslice := make([]int, 10)
 	/* инит slice */
 	for idx := 0; idx < len(mslice); idx = idx + 1 {

@@ -1,3 +1,4 @@
+// задания 2 , 3
 package main
 
 import "fmt"
