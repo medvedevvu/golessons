@@ -1,5 +1,5 @@
 # golessons
-I study golang
+I study golang <hr>
 ap1toall.go            - 1     задание <br>
 addFirstLast.go        - 2 , 3 задания <br>
 addFirstLast.go        - 4 , 5 задания <br>
