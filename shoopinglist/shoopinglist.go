@@ -1,4 +1,5 @@
 // задание 5
+// тут сделал совершенно не то, что надо !
 package main
 
 import (
@@ -65,4 +66,8 @@ func main() {
 	fmt.Println(getCostItem(shopList, "Покупатель1"))
 	fmt.Println(getCostItem(shopList, "Покупатель2"))
 
+	fmt.Println(addNewOrderItem(shopList, "Покупатель2", "Рыба", 11.2))
+	fmt.Println(shopList)
+	fmt.Println(addNewOrderItem(shopList, "Покупатель2", "Рыба", 33.2))
+	fmt.Println(shopList)
 }
