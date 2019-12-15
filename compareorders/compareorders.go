@@ -41,10 +41,12 @@ func getOrderCost(itList map[string]float32, order []string) float32 {
 func seveListwithCost(
 	ordersPrice map[float32][]string, // списки товаров с ценами
 	itemsPrice map[string]float32, // справочник товаров
-	itemsList []string) { // список товаров
+	itemsList []string) float32 { // список товаров
 	// посмотрим , есть ли такая запись в справочнике список товаров - с ценой
 	exists := false
-	for _, oList := range ordersPrice {
+	var ostat float32 = 0
+	for idx, oList := range ordersPrice {
+		ostat = idx
 		if len(itemsList) != len(oList) {
 			continue
 		}
@@ -61,45 +63,49 @@ func seveListwithCost(
 	}
 	if !exists {
 		ordersPrice[getOrderCost(itemsPrice, itemsList)] = itemsList
+		return getOrderCost(itemsPrice, itemsList)
 	} else {
 		fmt.Printf("Список %s уже есть \n", itemsList)
+		return ostat
 	}
 }
 
 /*
    Регистрация заказа с корректировкой остатка у пользователя
 */
-func orderRegister(username string,
-	acountList map[string]float32,
+func orderRegister(acountList map[string]float32,
 	ordersPrice map[float32][]string, // списки товаров с ценами
-	itemsPrice map[string]float32,   // справочник товаров
-	itemsList []string ,             // список товаров
-	billList map[string][]float32    // список счетов 
-	) { 
-	// проверим пользователя 
-	ostatok , ok := acountList[username]
+	itemsPrice map[string]float32, // справочник товаров
+	billList map[string][]float32, // список счетов
+	username string, // пользователь
+	itemsList []string) { // список товаров
+	// проверим пользователя
+	ostatok, ok := acountList[username]
 	if !ok {
-		fmt.Printf("Пользователь %s не регистрирован !" , username)
+		fmt.Printf("Пользователь %s не регистрирован !", username)
 	}
 	// проверим кредитоспособность
 	if ostatok <= 0 {
-		fmt.Printf("У пользователя %s остаток на счету %.2f !" , username , ostatok )
+		fmt.Printf("У пользователя %s остаток на счету %.2f !", username, ostatok)
 	}
-	// добавить ветку просмотра 
-	totalCost := getOrderCost(itemsPrice, itemsList )
-	saldo := ostatok-totalCost
+	// добавить ветку просмотра
+	totalCost := seveListwithCost(ordersPrice, itemsPrice, itemsList)
+	//	if totalCost == -1 {
+	//		totalCost = getOrderCost(itemsPrice, itemsList)
+	//	}
+	saldo := ostatok - totalCost
 	if saldo >= 0 {
 		acountList[username] = saldo
-		// сохраним успешный вариант 
-		seveListwithCost(ordersPrice, itemsPrice, itemsList ) 
-		// сохраним списание 
-		billList[username] = append( billList[username] , totalCost )
-		fmt.Printf("Списание выполнено , пользователь %s остаток: %.2f списание: %.2f сальдо: %.2f  !" , 
-		           username , ostatok , totalCost , saldo )	
-	
+		// сохраним успешный вариант
+		// seveListwithCost(ordersPrice, itemsPrice, itemsList)
+		// сохраним списание
+		billList[username] = append(billList[username], totalCost)
+		fmt.Printf("Списание выполнено , пользователь %s остаток: %.2f списание: %.2f сальдо: %.2f  !",
+			username, ostatok, totalCost, saldo)
+
 	} else {
-		fmt.Printf("У пользователя %s остаток: %.2f списание: %.2f сальдо: %.2f - не достаточно средств !" , 
-		           username , ostatok , totalCost , saldo )	
+		fmt.Printf("У пользователя %s остаток: %.2f списание: %.2f сальдо: %.2f - не достаточно средств !",
+			username, ostatok, totalCost, saldo)
 	}
 
 }
@@ -114,7 +120,7 @@ func main() {
 	ordersPrice := map[float32][]string{} // список товаров с посчитанной общей ценой
 
 	acountList := map[string]float32{ // Список пользователей
-		"Вася": 100.0,
+		"Вася": 800.0,
 		"Коля": 200.0,
 		"Дима": 300.0,
 		"Петр": 125.0}
@@ -144,5 +150,25 @@ func main() {
 	fmt.Println(ordersPrice)
 
 	fmt.Println("----- 8 -----")
+	fmt.Println(acountList)
+	fmt.Println("---------------------------")
+	orderRegister(acountList,
+		ordersPrice, // списки товаров с ценами
+		itemsPrice,  // справочник товаров
+		billList,    // список счетов
+		"Вася",      // пользователь
+		[]string{"Хлеб", "Рыба", "Ветчина"}) // список товаров
+	//	fmt.Println(acountList)
+	//	fmt.Println(billList)
 
+	//	fmt.Println(acountList)
+	orderRegister(acountList,
+		ordersPrice, // списки товаров с ценами
+		itemsPrice,  // справочник товаров
+		billList,    // список счетов
+		"Вася",      // пользователь
+		[]string{"Хлеб", "Рыба", "Ветчина"}) // список товаров
+	fmt.Println("---------------------------")
+	fmt.Println(acountList)
+	fmt.Println(billList)
 }
