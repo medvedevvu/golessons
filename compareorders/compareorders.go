@@ -1,7 +1,10 @@
 // задание 7 - 8  - 9 - 10
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 /* Добавление нового товра в справочник - если есть измениться цена  */
 func addItemsPrice(itList map[string]float32,
@@ -110,6 +113,101 @@ func orderRegister(acountList map[string]float32,
 
 }
 
+// завел специально для сортирования по возрастанию
+type byUp []float32
+
+func (a byUp) Len() int      { return len(a) }
+func (a byUp) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byUp) Less(i, j int) bool {
+	if a[i] <= a[j] {
+		return true
+	}
+	return false
+}
+
+// завел специально для сортирования по убыванию - потом понял что это лишняя
+//  так как есть Revers
+/*type byDown []float32
+
+func (a byDown) Len() int      { return len(a) }
+func (a byDown) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byDown) Less(i, j int) bool {
+	if a[i] >= a[j] {
+		return true
+	}
+	return false
+}
+*/
+
+func showAccount(acc map[string]float32, mth int) {
+
+	switch mth {
+	// ---- по имени   возрастание
+	case 0:
+		{
+			keys := []string{}
+			for key := range acc {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+			for _, x := range keys {
+				fmt.Printf("name:%s  bill:%.2f\n", x, acc[x])
+			}
+		}
+	// ---- по имени   убывание
+	case 1:
+		{
+			keys := []string{}
+			for key := range acc {
+				keys = append(keys, key)
+			}
+			sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+			for _, x := range keys {
+				fmt.Printf("name:%s  bill:%.2f\n", x, acc[x])
+			}
+		}
+	// ---- по деньгам возрастание
+	case 2:
+		{
+			keys := []float32{}
+			for _, key := range acc {
+				keys = append(keys, key)
+			}
+
+			sort.Sort(byUp(keys))
+
+			for _, x := range keys {
+				for name, bill := range acc {
+					if bill == x {
+						fmt.Printf("name:%s  bill:%.2f\n", name, bill)
+					}
+				}
+			}
+		}
+	// ---- по деньгам убывание
+	case 3:
+		{
+			keys := []float32{}
+			for _, key := range acc {
+				keys = append(keys, key)
+			}
+
+			//sort.Sort(byDown(keys))
+			sort.Sort(sort.Reverse(byUp(keys)))
+
+			for _, x := range keys {
+				for name, bill := range acc {
+					if bill == x {
+						fmt.Printf("name:%s  bill:%.2f\n", name, bill)
+					}
+				}
+			}
+		}
+	default:
+		fmt.Println("--- такой опции нет ---")
+	}
+}
+
 func main() {
 	itemsPrice := map[string]float32{"Спички": 1.2,
 		"Хлеб":    20.15,
@@ -171,4 +269,13 @@ func main() {
 	fmt.Println("---------------------------")
 	fmt.Println(acountList)
 	fmt.Println(billList)
+	fmt.Println("----- 9 -----")
+	fmt.Println("----- по имени        -----")
+	showAccount(acountList, 0)
+	fmt.Println("----- по имени реверс -----")
+	showAccount(acountList, 1)
+	fmt.Println("----- по деньгам      -----")
+	showAccount(acountList, 2)
+	fmt.Println("----- по деньгам инверсия---")
+	showAccount(acountList, 3)
 }
