@@ -1,2 +1,4 @@
 # golessons
-I study golang
+HWORK3 --- part 3
+<HR>
+
