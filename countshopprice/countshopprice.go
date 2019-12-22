@@ -7,13 +7,13 @@ import (
 )
 
 /* Добавление нового товра в справочник - если есть измениться цена  */
-func addItemsPrice(itemList map[int]mu.ItemPrice, item mu.ItemPrice) string {
+func addItemsPrice(itemsPrice map[int]mu.ItemPrice, item mu.ItemPrice) string {
 	/* проверим наличие в каталоге */
 	fnd := false
 	vIdx := 0
 	msg := item.ItemName
 	var oldPrice float32 = 0
-	for cidx, citem := range itemList {
+	for cidx, citem := range itemsPrice {
 		vIdx = cidx
 		if citem.ItemName == item.ItemName {
 			oldPrice = citem.ItemPrice
@@ -24,9 +24,9 @@ func addItemsPrice(itemList map[int]mu.ItemPrice, item mu.ItemPrice) string {
 	if fnd {
 		msg += "--обновиление--цены--старая:" + fmt.Sprintf("%.2f", oldPrice) +
 			" новая:" + fmt.Sprintf("%.2f", item.ItemPrice)
-		itemList[vIdx] = item
+		itemsPrice[vIdx] = item
 	} else {
-		itemList[vIdx+1] = item
+		itemsPrice[len(itemsPrice)] = item
 		msg += "--новый--товар--по цене--:" + fmt.Sprintf("%.2f", item.ItemPrice)
 	}
 	return msg
@@ -36,11 +36,11 @@ func addItemsPrice(itemList map[int]mu.ItemPrice, item mu.ItemPrice) string {
    нет в справочнике - сообщить об этом пользователю
    вернуть заказ с посчитанной ценой
 */
-func getOrderCost(itemList map[int]mu.ItemPrice, shopList mu.Order) float32 {
+func getOrderCost(itemsList map[int]mu.ItemPrice, shopList mu.Order) float32 {
 	var ordrCost float32 = 0
 	for _, shopName := range shopList.Items { // бегу по списку товаров в заказе
 		fond := false
-		for _, item := range itemList { // бегу по списку товаров в каталоге
+		for _, item := range itemsList { // бегу по списку товаров в каталоге
 			if shopName == item.ItemName {
 				ordrCost += item.ItemPrice
 				fond = true
@@ -70,27 +70,27 @@ func compStrArr(in1, in2 []string) bool {
 }
 
 func seveListwithCost(
-	ordersPrice []mu.Order, // списки товаров с ценами
+	ordersPrice *[]mu.Order, // списки товаров с ценами
 	itemsPrice map[int]mu.ItemPrice, // справочник товаров
 	itemsList mu.Order) mu.Order { // список товаров заказа
 	// посмотрим , есть ли такая запись в справочнике список товаров - с ценой
-	if ordersPrice == nil {
+	if len(*ordersPrice) == 0 {
 		itemsList.TotalSum = getOrderCost(itemsPrice, itemsList)
-		ordersPrice = append(ordersPrice, itemsList)
+		*ordersPrice = append(*ordersPrice, itemsList)
 		return itemsList
 	}
 
 	exists := false
 	tmpordersPrice := mu.Order{}
-	for oidx, oItem := range ordersPrice {
-		tmpordersPrice = ordersPrice[oidx]
+	for oidx, oItem := range *ordersPrice {
+		tmpordersPrice = (*ordersPrice)[oidx]
 		if exists = compStrArr(oItem.Items, itemsList.Items); exists { // такой список товаров уже есть
 			break
 		}
 	}
 	if !exists {
 		itemsList.TotalSum = getOrderCost(itemsPrice, itemsList)
-		ordersPrice = append(ordersPrice, itemsList)
+		*ordersPrice = append(*ordersPrice, itemsList)
 		return itemsList
 	} else {
 		fmt.Printf("Список %s уже есть \n", tmpordersPrice.Items)
@@ -118,6 +118,8 @@ func main() {
 	vTempOrder := mu.Order{[]string{"Хлеб", "Сосиски", "Салями"}, 0}
 	fmt.Printf("Цена заказа %.2f\n", getOrderCost(itemsPrice, vTempOrder))
 
+	fmt.Println(itemsPrice)
+
 	acountList := map[int]mu.User{} // каталог пользователей
 	// --- положим немного данных о пользователях
 	acountList[0] = mu.User{UserName: "Вася", Account: 800.0}
@@ -140,10 +142,10 @@ func main() {
 
 	ordersPrice := []mu.Order{} // список заказов с посчитанной общей ценой
 
-	fmt.Println(seveListwithCost(ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Сосиски"}, 0}))
-	fmt.Println(seveListwithCost(ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Сыр"}, 0}))
-	fmt.Println(seveListwithCost(ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба"}, 0}))
-	fmt.Println(seveListwithCost(ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба"}, 0}))
-	fmt.Println(seveListwithCost(ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0}))
+	fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Сосиски"}, 0}))
+	fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Сыр"}, 0}))
+	fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба"}, 0}))
+	fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба"}, 0}))
+	fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0}))
 
 }
