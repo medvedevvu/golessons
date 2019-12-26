@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	mu "mutils/structsdef"
+	"reflect"
 	"sort"
 )
 
@@ -198,6 +199,19 @@ func showAccount(acountList map[int]*mu.User, p int) {
 	default:
 		fmt.Println("--- такой опции нет ---")
 	}
+
+	/*
+	   Когда сделал вывод вот так перестала слетать сортировка при печати,
+	   не знаю на сколько такой способ правильный , но
+	   когда делаешь через range - сортировка слетает при выводе на печать.
+	*/
+	keys := reflect.ValueOf(acountList).MapKeys()
+
+	for i := 0; i < len(keys); i++ {
+		fmt.Printf("Name: %s Price: %.2f \n", acountList[i].UserName,
+			acountList[i].Account)
+	}
+
 }
 
 func main() {
@@ -283,21 +297,21 @@ func main() {
 		mu.Order{[]string{"Хлеб", "Сосиски"}, 0}) // список товаров
 
 	fmt.Println("---------------------------")
-	PrintUsers(acountList)
+	//PrintUsers(acountList)
 	fmt.Println(billList)
 
 	fmt.Println("----- 9 -----")
 	fmt.Println("----- по имени        -----")
 	showAccount(acountList, 0)
-	PrintUsers(acountList)
+	//PrintUsers(acountList)
 
 	fmt.Println("----- по имени реверс -----")
 	showAccount(acountList, 1)
-	PrintUsers(acountList)
+	//PrintUsers(acountList)
 	fmt.Println("----- по деньгам      -----")
 	showAccount(acountList, 2)
-	PrintUsers(acountList)
+	//PrintUsers(acountList)
 	fmt.Println("----- по деньгам инверсия---")
 	showAccount(acountList, 3)
-	PrintUsers(acountList)
+	//PrintUsers(acountList)
 }
