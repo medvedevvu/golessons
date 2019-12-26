@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	mu "mutils/structsdef"
+	"sort"
 )
 
 /* Добавление нового товра в справочник - если есть измениться цена  */
@@ -162,9 +163,42 @@ func orderRegister(acountList map[int]*mu.User, // список пользова
 
 }
 
-//func showAccount(acountList map[int]mu.User) {
-//
-//}
+// ByName сортируем по имени
+type ByName map[int]*mu.User
+
+func (a ByName) Len() int           { return len(a) }
+func (a ByName) Less(i, j int) bool { return a[i].UserName < a[j].UserName }
+func (a ByName) Swap(i, j int)      { a[i].UserName, a[j].UserName = a[j].UserName, a[i].UserName }
+
+// ByAcc сортируем по остатку
+type ByAcc map[int]*mu.User
+
+func (a ByAcc) Len() int           { return len(a) }
+func (a ByAcc) Less(i, j int) bool { return a[i].Account < a[j].Account }
+func (a ByAcc) Swap(i, j int)      { a[i].Account, a[j].Account = a[j].Account, a[i].Account }
+
+func showAccount(acountList map[int]*mu.User, p int) {
+	switch p {
+	case 0:
+		{
+			sort.Sort(ByName(acountList))
+		}
+	case 1:
+		{
+			sort.Sort(sort.Reverse(ByName(acountList)))
+		}
+	case 2:
+		{
+			sort.Sort(ByAcc(acountList))
+		}
+	case 3:
+		{
+			sort.Sort(sort.Reverse(ByAcc(acountList)))
+		}
+	default:
+		fmt.Println("--- такой опции нет ---")
+	}
+}
 
 func main() {
 	itemsPrice := map[int]*mu.ItemPrice{} // каталог товаров
@@ -241,18 +275,29 @@ func main() {
 		*acountList[2], // пользователь
 		mu.Order{[]string{"Хлеб", "Сосиски"}, 0}) // список товаров
 
+	orderRegister(acountList, // списки пользователь
+		&ordersPrice,   // списки товаров с ценами
+		itemsPrice,     // справочник товаров
+		billList,       // список счетов
+		*acountList[2], // пользователь
+		mu.Order{[]string{"Хлеб", "Сосиски"}, 0}) // список товаров
+
 	fmt.Println("---------------------------")
 	PrintUsers(acountList)
 	fmt.Println(billList)
 
-	//fmt.Println("----- 9 -----")
-	//fmt.Println("----- по имени        -----")
+	fmt.Println("----- 9 -----")
+	fmt.Println("----- по имени        -----")
+	showAccount(acountList, 0)
+	PrintUsers(acountList)
 
-	//showAccount(acountList, 0)
-	/*fmt.Println("----- по имени реверс -----")
+	fmt.Println("----- по имени реверс -----")
 	showAccount(acountList, 1)
+	PrintUsers(acountList)
 	fmt.Println("----- по деньгам      -----")
 	showAccount(acountList, 2)
+	PrintUsers(acountList)
 	fmt.Println("----- по деньгам инверсия---")
-	showAccount(acountList, 3)*/
+	showAccount(acountList, 3)
+	PrintUsers(acountList)
 }
