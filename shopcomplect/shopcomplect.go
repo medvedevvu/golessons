@@ -4,51 +4,88 @@ package main
 import (
 	"fmt"
 	mu "mutils/structsdef2"
-	"reflect"
-	"sort"
 )
 
 /* Добавление нового товра в справочник - если есть измениться цена и тип */
-func addItemsPrice(itemsPrice map[int]*mu.ItemPrice, item *mu.ItemPrice) string {
+
+func addItemsPrice(itemsPrice map[string]*mu.ItemPrice,
+	itemName string,
+	item *mu.ItemPrice) string {
 	/* проверим наличие в каталоге */
-	fnd := false
-	vIdx := 0
-	msg := item.ItemName
-	var oldPrice float32 = 0
-	var oldType int
-	for cidx, citem := range itemsPrice {
-		vIdx = cidx
-		if citem.ItemName == item.ItemName {
-			oldPrice = citem.ItemPrice
-			oldType = citem.ItemType
-			fnd = true
-			break
-		}
-	}
-	if fnd {
-		msg += "--обновиление--цены--старая:" + fmt.Sprintf("%.2f", oldPrice) +
-			"-- старый--тип:" + fmt.Sprintf("%d", oldType) +
+	vItemPrice, ok := itemsPrice[itemName]
+	msg := itemName
+	if !ok { // не нашли добавляем в каталог
+		itemsPrice[itemName] = item
+		msg += "--новый--товар--по цене--:" + fmt.Sprintf("%.2f", item.ItemPrice)
+	} else { // нашли - обноавляем цену и тип
+		msg += "--обновиление--цены--старая:" + fmt.Sprintf("%.2f", vItemPrice.ItemPrice) +
+			"-- старый--тип:" + fmt.Sprintf("%d", vItemPrice.ItemType) +
 			" новая:" + fmt.Sprintf("%.2f", item.ItemPrice) +
 			" новый тип:" + fmt.Sprintf("%d", item.ItemType)
-		itemsPrice[vIdx] = item
-
-	} else {
-		itemsPrice[len(itemsPrice)] = item
-		msg += "--новый--товар--по цене--:" + fmt.Sprintf("%.2f", item.ItemPrice)
+		itemsPrice[itemName] = item
 	}
 	return msg
 }
 
-func PrintCatalog(itemsPrice map[int]*mu.ItemPrice) {
-	for _, item := range itemsPrice {
-		fmt.Printf("Name: %s Price: %.2f  Type: %d \n", item.ItemName, item.ItemPrice,
+// PrintCatalog печать каталога
+func PrintCatalog(itemsPrice map[string]*mu.ItemPrice) {
+	for name, item := range itemsPrice {
+		fmt.Printf("Name: %s Price: %.2f  Type: %d \n", name, item.ItemPrice,
 			item.ItemType)
 	}
 }
 
-func PrintUsers(acountList map[int]*mu.User) {
-	for _, item := range acountList {
-		fmt.Printf("Name: %s Account: %.2f  Type: %d\n", item.UserName, item.Account, item.UserType)
+// PrintUsers печать каталога
+func PrintUsers(acountList map[string]*mu.User) {
+	for name, item := range acountList {
+		fmt.Printf("Name: %s  Email: %s Account: %.2f  Type: %d\n", name, item.Email, item.Account, item.UserType)
+	}
+}
+
+func createOrder(itemsList map[string]*mu.ItemPrice, orderItems []string) mu.Order {
+	tovar := []string{}
+	probnik := []string{}
+	itog := []string{}
+	/* определимся сколько товаров и сколько пробников
+	   пробники можем добавлять только к комплекту = 2 товара + пробник
+	*/
+	for _, name := range orderItems {
+		vitemsList, ok := itemsList[name]
+		if ok {
+			switch vitemsList.ItemType {
+			case 2:
+				probnik = append(probnik, name)
+			default:
+				tovar = append(tovar, name)
+			}
+		}
+
+	}
+	/*
+	   два товра + пробник == 3
+	   если выбрал только пробники - вернуть пустой набор nil
+	   если больше 1,2,...,4....> товаров - то вернуть список без пробника
+	*/
+	switch {
+	case (len(probnik) == 1 && len(tovar) == 2):
+		{
+			itog = append(itog, probnik...)
+			itog = append(itog, tovar...)
+			return mu.Order{Items: itog, OrderType: 0, TotalSum: 0}
+		}
+	case (len(probnik) != 0 && len(tovar) == 0):
+		{
+			return mu.Order{}
+		}
+	case (len(probnik) == 0 && len(tovar) == 0):
+		{
+			return mu.Order{}
+		}
+	default:
+		{
+			itog = append(itog, tovar...)
+			return mu.Order{Items: itog, OrderType: 0, TotalSum: 0}
+		}
 	}
 }
 
@@ -56,22 +93,74 @@ func PrintUsers(acountList map[int]*mu.User) {
    нет в справочнике - сообщить об этом пользователю
    вернуть заказ с посчитанной ценой
 */
-func getOrderCost(itemsList map[int]*mu.ItemPrice, shopList mu.Order) float32 {
+func getOrderCost(itemsList map[string]*mu.ItemPrice, shopList mu.Order) float32 {
 	var ordrCost float32 = 0
 	for _, shopName := range shopList.Items { // бегу по списку товаров в заказе
-		fond := false
-		for _, item := range itemsList { // бегу по списку товаров в каталоге
-			if shopName == item.ItemName {
-				ordrCost += item.ItemPrice
-				fond = true
-				break
+		vitemList, ok := itemsList[shopName]
+		if ok { // нашли
+			if vitemList.ItemType != 2 {
+				ordrCost += vitemList.ItemPrice
+			} else {
+				fmt.Println(" товар >>" + shopName + "<< пробник с нулевой ценой ")
 			}
-		}
-		if !fond {
+
+		} else {
 			fmt.Println(" товара >>" + shopName + "<< нет в каталоге")
 		}
 	}
 	return ordrCost
+}
+
+/* Получить тип заказа по списку товаров -
+ */
+func getOrderType(itemsList map[string]*mu.ItemPrice,
+	shopList mu.Order) int {
+	/*
+	   0 - товар
+	   1 - набор (всегда 2 товара )
+	   2 - (набор + пробник или товар + пробник )
+	*/
+	filteredItems := []string{}
+	for _, name := range shopList.Items {
+		_, ok := itemsList[name]
+		if ok {
+			filteredItems = append(filteredItems, name)
+		}
+	}
+	if len(filteredItems) == 3 { // набор
+		isNaborPlusProbnik := false
+		countProbniki := 0
+		for _, name := range filteredItems {
+			vitemsList, ok := itemsList[name]
+			if ok {
+				if vitemsList.ItemType == 2 {
+					isNaborPlusProbnik = true
+					countProbniki++
+				}
+			}
+		}
+		if isNaborPlusProbnik && (countProbniki == 1) {
+			return 2
+		} else {
+			return 1
+		}
+	} else {
+		switch {
+		case len(filteredItems) == 2:
+			{
+				return 1
+			}
+		case len(filteredItems) > 0:
+			{
+				return 0
+			}
+		default:
+			{
+				return -1
+			}
+		}
+
+	}
 }
 
 /*
@@ -89,6 +178,7 @@ func compStrArr(in1, in2 []string) bool {
 	return rez
 }
 
+/*
 func seveListwithCost(
 	ordersPrice *[]mu.Order, // списки товаров с ценами
 	itemsPrice map[int]*mu.ItemPrice, // справочник товаров
@@ -121,7 +211,7 @@ func seveListwithCost(
 /*
    Регистрация заказа с корректировкой остатка у пользователя
 */
-
+/*
 func orderRegister(acountList map[int]*mu.User, // список пользователей
 	ordersPrice *[]mu.Order, // списки товаров с ценами
 	itemsPrice map[int]*mu.ItemPrice, // справочник товаров
@@ -210,8 +300,8 @@ func showAccount(acountList map[int]*mu.User, p int) {
 	   Когда сделал вывод вот так перестала слетать сортировка при печати,
 	   не знаю на сколько такой способ правильный , но
 	   когда делаешь через range - сортировка слетает при выводе на печать.
-	*/
-	keys := reflect.ValueOf(acountList).MapKeys()
+*/
+/*	keys := reflect.ValueOf(acountList).MapKeys()
 
 	for i := 0; i < len(keys); i++ {
 		fmt.Printf("Name: %s Price: %.2f \n", acountList[i].UserName,
@@ -219,108 +309,128 @@ func showAccount(acountList map[int]*mu.User, p int) {
 	}
 
 }
+*/
 
 func main() {
 
-	acountList := map[int]*mu.User{} // каталог пользователей
+	acountList := map[string]*mu.User{} // каталог пользователей
 	// --- положим немного данных о пользователях
-	acountList[0] = &mu.User{UserName: "Вася", Account: 800.0, UserType: 1}
-	acountList[1] = &mu.User{UserName: "Коля", Account: 200.0, UserType: 0}
-	acountList[2] = &mu.User{UserName: "Дима", Account: 300.0, UserType: 1}
-	acountList[3] = &mu.User{UserName: "Петр", Account: 125.0, UserType: 0}
+	acountList["Вася"] = &mu.User{Email: "vasya@vlg.ru", Account: 800.0, UserType: 1}
+	acountList["Коля"] = &mu.User{Email: "kolya@volgatel.ru", Account: 200.0, UserType: 0}
+	acountList["Дима"] = &mu.User{Email: "dima@mail.ru", Account: 300.0, UserType: 1}
+	acountList["Петр"] = &mu.User{Email: "petr@onix.ru", Account: 125.0, UserType: 0}
+
 	PrintUsers(acountList)
 
 	// Список счетов - история покупок
-	//         ID accountList --> ID Order --> Сумма заказа
-	billList := map[int]map[int]float32{}
-	billList[0] = map[int]float32{0: 0.0}
-	billList[1] = map[int]float32{0: 0.0}
-	billList[2] = map[int]float32{0: 0.0}
-	billList[3] = map[int]float32{0: 0.0}
+	//         UserNAme accountList --> ID Order --> Сумма заказа
+	billList := map[string]map[int]float32{}
+	billList["Вася"] = map[int]float32{0: 0.0}
+	billList["Коля"] = map[int]float32{0: 0.0}
+	billList["Дима"] = map[int]float32{0: 0.0}
+	billList["Петр"] = map[int]float32{0: 0.0}
 	// первоначально нулевая история
 	fmt.Println(billList)
 
-	itemsPrice := map[int]*mu.ItemPrice{} // каталог товаров
+	//                ItemName
+	itemsPrice := map[string]*mu.ItemPrice{} // каталог товаров
 	// --- положим немного данных в каталог
-	itemsPrice[0] = &mu.ItemPrice{ItemName: "Спички", ItemPrice: 1.2, ItemType: 0}
-	itemsPrice[1] = &mu.ItemPrice{ItemName: "Хлеб", ItemPrice: 20.15, ItemType: 0}
-	itemsPrice[2] = &mu.ItemPrice{ItemName: "Сыр", ItemPrice: 200.05, ItemType: 0}
-	itemsPrice[3] = &mu.ItemPrice{ItemName: "Рыба", ItemPrice: 150.45, ItemType: 1}
-	itemsPrice[4] = &mu.ItemPrice{ItemName: "Сосиски", ItemPrice: 300.45, ItemType: 0}
-	itemsPrice[5] = &mu.ItemPrice{ItemName: "Зубочистки", ItemPrice: 0, ItemType: 2}
+	itemsPrice["Спички"] = &mu.ItemPrice{ItemPrice: 1.2, ItemType: 0}
+	itemsPrice["Хлеб"] = &mu.ItemPrice{ItemPrice: 20.15, ItemType: 0}
+	itemsPrice["Сыр"] = &mu.ItemPrice{ItemPrice: 200.05, ItemType: 0}
+	itemsPrice["Рыба"] = &mu.ItemPrice{ItemPrice: 150.45, ItemType: 1}
+	itemsPrice["Сосиски"] = &mu.ItemPrice{ItemPrice: 300.45, ItemType: 0}
+	itemsPrice["Зубочистки"] = &mu.ItemPrice{ItemPrice: 0, ItemType: 2}
 
 	fmt.Println("----- добавление товара в каталог -----")
 	PrintCatalog(itemsPrice)
 
-	fmt.Println(addItemsPrice(itemsPrice, &mu.ItemPrice{ItemName: "Сосиски", ItemPrice: 255.41, ItemType: 1}))
-	fmt.Println(addItemsPrice(itemsPrice, &mu.ItemPrice{ItemName: "Ветчина", ItemPrice: 600.32, ItemType: 1}))
+	fmt.Println(addItemsPrice(itemsPrice, "Сосиски",
+		&mu.ItemPrice{ItemPrice: 255.41, ItemType: 1}))
+	fmt.Println(addItemsPrice(itemsPrice, "Ветчина",
+		&mu.ItemPrice{ItemPrice: 600.32, ItemType: 1}))
 	PrintCatalog(itemsPrice)
+	fmt.Println("----- сформировать заказ -----")
+	v1Order := createOrder(itemsPrice,
+		[]string{"Хлеб", "Сосиски", "Рыба", "Зубочистки"})
+	fmt.Println(v1Order)
+	v2Order := createOrder(itemsPrice,
+		[]string{"Хлеб", "Сосиски", "Зубочистки"})
+	fmt.Println(v2Order)
 
-	/*	fmt.Println("----- получить цену заказа -----")
-		vTempOrder := mu.Order{[]string{"Хлеб", "Сосиски", "Салями"}, 0}
-		fmt.Printf("Цена заказа %.2f\n", getOrderCost(itemsPrice, vTempOrder))
+	fmt.Println("----- получить цену заказа -----")
+	//vTempOrder := mu.Order{Items: []string{"Хлеб", "Сосиски", "Рыба", "Зубочистки"},
+	//		TotalSum: 0.0, OrderType: 0}
+	vTotalSum := getOrderCost(itemsPrice, v1Order)  // цена заказа
+	vOrderType := getOrderType(itemsPrice, v1Order) // тип заказа
+	fmt.Printf("Цена заказа %.2f Тип заказа: %d \n ", vTotalSum, vOrderType)
 
-		PrintCatalog(itemsPrice)
+	vTotalSum = getOrderCost(itemsPrice, v2Order)  // цена заказа
+	vOrderType = getOrderType(itemsPrice, v2Order) // тип заказа
+	fmt.Printf("Цена заказа %.2f Тип заказа: %d \n ", vTotalSum, vOrderType)
 
-		fmt.Println("----- 7 -----")
+	//PrintCatalog(itemsPrice)
 
+	fmt.Println("----- 7 -----")
+	/*
 		ordersPrice := []mu.Order{} // список заказов с посчитанной общей ценой
 
-		fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Сосиски"}, 0}))
-		fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Сыр"}, 0}))
-		fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба"}, 0}))
-		fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба"}, 0}))
-		fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0}))
 
-		fmt.Println(ordersPrice)
-		fmt.Println("----- 8 -----")
-		PrintUsers(acountList)
-		fmt.Println("---------------------------")
-		orderRegister(acountList, // списки пользователь
-			&ordersPrice,   // списки товаров с ценами
-			itemsPrice,     // справочник товаров
-			billList,       // список счетов
-			*acountList[0], // пользователь
-			mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0}) // список товаров
+			fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Сосиски"}, 0}))
+			fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Сыр"}, 0}))
+			fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба"}, 0}))
+			fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба"}, 0}))
+			fmt.Println(seveListwithCost(&ordersPrice, itemsPrice, mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0}))
 
-		orderRegister(acountList, // списки пользователь
-			&ordersPrice,   // списки товаров с ценами
-			itemsPrice,     // справочник товаров
-			billList,       // список счетов
-			*acountList[0], // пользователь
-			mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0}) // список товаров
+			fmt.Println(ordersPrice)
+			fmt.Println("----- 8 -----")
+			PrintUsers(acountList)
+			fmt.Println("---------------------------")
+			orderRegister(acountList, // списки пользователь
+				&ordersPrice,   // списки товаров с ценами
+				itemsPrice,     // справочник товаров
+				billList,       // список счетов
+				*acountList[0], // пользователь
+				mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0}) // список товаров
 
-		orderRegister(acountList, // списки пользователь
-			&ordersPrice,   // списки товаров с ценами
-			itemsPrice,     // справочник товаров
-			billList,       // список счетов
-			*acountList[2], // пользователь
-			mu.Order{[]string{"Хлеб", "Сосиски"}, 0}) // список товаров
+			orderRegister(acountList, // списки пользователь
+				&ordersPrice,   // списки товаров с ценами
+				itemsPrice,     // справочник товаров
+				billList,       // список счетов
+				*acountList[0], // пользователь
+				mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0}) // список товаров
 
-		orderRegister(acountList, // списки пользователь
-			&ordersPrice,   // списки товаров с ценами
-			itemsPrice,     // справочник товаров
-			billList,       // список счетов
-			*acountList[2], // пользователь
-			mu.Order{[]string{"Хлеб", "Сосиски"}, 0}) // список товаров
+			orderRegister(acountList, // списки пользователь
+				&ordersPrice,   // списки товаров с ценами
+				itemsPrice,     // справочник товаров
+				billList,       // список счетов
+				*acountList[2], // пользователь
+				mu.Order{[]string{"Хлеб", "Сосиски"}, 0}) // список товаров
 
-		fmt.Println("---------------------------")
-		//PrintUsers(acountList)
-		fmt.Println(billList)
+			orderRegister(acountList, // списки пользователь
+				&ordersPrice,   // списки товаров с ценами
+				itemsPrice,     // справочник товаров
+				billList,       // список счетов
+				*acountList[2], // пользователь
+				mu.Order{[]string{"Хлеб", "Сосиски"}, 0}) // список товаров
 
-		fmt.Println("----- 9 -----")
-		fmt.Println("----- по имени        -----")
-		showAccount(acountList, 0)
-		//PrintUsers(acountList)
+			fmt.Println("---------------------------")
+			//PrintUsers(acountList)
+			fmt.Println(billList)
 
-		fmt.Println("----- по имени реверс -----")
-		showAccount(acountList, 1)
-		//PrintUsers(acountList)
-		fmt.Println("----- по деньгам      -----")
-		showAccount(acountList, 2)
-		//PrintUsers(acountList)
-		fmt.Println("----- по деньгам инверсия---")
-		showAccount(acountList, 3)
-		//PrintUsers(acountList)
+			fmt.Println("----- 9 -----")
+			fmt.Println("----- по имени        -----")
+			showAccount(acountList, 0)
+			//PrintUsers(acountList)
+
+			fmt.Println("----- по имени реверс -----")
+			showAccount(acountList, 1)
+			//PrintUsers(acountList)
+			fmt.Println("----- по деньгам      -----")
+			showAccount(acountList, 2)
+			//PrintUsers(acountList)
+			fmt.Println("----- по деньгам инверсия---")
+			showAccount(acountList, 3)
+			//PrintUsers(acountList)
 	*/
 }

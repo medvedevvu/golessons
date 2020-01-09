@@ -1,8 +1,8 @@
 package structsdef1
 
-// ItemPrice - описание товара
+// ItemPrice - описание товара в дальнейшем map[ItemName] *ItemPrice
 type ItemPrice struct {
-	ItemName  string  // название товара
+	//ItemName  string  // название товара
 	ItemPrice float32 // цена
 	ItemType  int     //  0 - обычный товар 1 - премиум товар 2 - пробник с нулевой ценой
 }
@@ -11,12 +11,13 @@ type ItemPrice struct {
 type Order struct {
 	Items     []string // список товаров
 	TotalSum  float32  // сумма заказа
-	OrderType int      //  0 - обычный заказ 1 - комплект  2 - комплект + пробник
+	OrderType int
+	//  0 - товар 1 - набор  2 - (набор + пробник или товар + пробник )
 }
 
 // SetDiscount - устанавливаем скидку на заказ в зависимотси от пользователя
 // типов товаров и заказов
-func (order *Order) SetDiscount(user User, itemsPrice map[int]*ItemPrice,
+/*func (order *Order) SetDiscount(user User, itemsPrice map[int]*ItemPrice,
 	addDisc float32) (float32, float32, float32) {
 	var TotalSumNoDiscount float32
 	// если пользователь обычный
@@ -70,11 +71,11 @@ func (order *Order) SetDiscount(user User, itemsPrice map[int]*ItemPrice,
 	}
 	// будем возвращать сумму без скидки , без скидки по комлекту , выставленную к оплате
 	return TotalSumNoDiscount, TotalSumNoDiscountByCoplect, order.TotalSum
-}
+} */
 
-// User - описание пользователя
+// User - описание пользователя - в дальнейшем отображение map[userName]*User
 type User struct {
-	UserName string  // Имя пользователя
+	Email    string  // электронная почта пользователя - полагаю что уникальная
 	Account  float32 // остаток на счету
 	UserType int     // 0 - обычный пользователь 1 - премиум ползователь
 }
