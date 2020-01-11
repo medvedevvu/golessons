@@ -165,7 +165,8 @@ func getOrderType(itemsList map[string]*mu.ItemPrice,
 }
 
 /*
-сохраним список товаров с ценой во время запроса от пользователя
+ используется для сравнения списка закза и сохраненные заказы с ценами 203 строка
+  в функции seveListwithCostAndOrderType
 */
 
 func compStrArr(in1, in2 []string) bool {
@@ -178,6 +179,10 @@ func compStrArr(in1, in2 []string) bool {
 	}
 	return rez
 }
+
+/*
+сохраним список товаров с ценой во время запроса от пользователя
+*/
 
 func seveListwithCostAndOrderType(
 	ordersPrice *[]mu.Order, // списки товаров с ценами
