@@ -24,16 +24,18 @@ type User struct {
 	UserType int     // 0 - обычный пользователь 1 - премиум ползователь
 }
 
-// SetDiscount - устанавливаем скидку на заказ в зависимотси от пользователя
+// SetDiscount - устанавливаем скидку на заказ в зависимости от пользователя
 // типов товаров и заказов
 func (order *Order) SetDiscount(userName string,
 	acountList map[string]*User,
 	itemsPrice map[string]*ItemPrice,
-	addDisc float32,
+	addDisc float32, // скидывать предполагаю как множитель - если не задан или 0 - то 1
 ) (float32, float32, float32) {
-	var TotalSumNoDiscount float32
 	// если пользователь обычный
 	// если пользователь премиум
+	if addDisc <= 0 { // заглушка на значение по умолчанию.
+		addDisc = 1
+	}
 
 	vUser, ok := acountList[userName]
 
@@ -41,6 +43,7 @@ func (order *Order) SetDiscount(userName string,
 		return 0, 0, 0
 	}
 
+	var grandTotal float32
 	switch vUser.UserType {
 	case 0:
 		{
@@ -55,14 +58,14 @@ func (order *Order) SetDiscount(userName string,
 						}
 					case 1:
 						{
-							order.TotalSum += item.ItemPrice * 1.5
+							grandTotal += item.ItemPrice * 1.5
 						}
 					default:
 						{
-							order.TotalSum += item.ItemPrice
+							grandTotal += item.ItemPrice
 						}
 					}
-					TotalSumNoDiscount += item.ItemPrice
+					//TotalSumNoDiscount += item.ItemPrice
 				} else {
 					fmt.Printf("Товара %s нет в каталоге \n", itemName)
 				}
@@ -83,14 +86,14 @@ func (order *Order) SetDiscount(userName string,
 						}
 					case 1:
 						{
-							order.TotalSum += item.ItemPrice * 0.8
+							grandTotal += item.ItemPrice * 0.8
 						}
 					default:
 						{
-							order.TotalSum += item.ItemPrice * 0.95
+							grandTotal += item.ItemPrice * 0.95
 						}
 					}
-					TotalSumNoDiscount += item.ItemPrice
+					//TotalSumNoDiscount += item.ItemPrice
 				} else {
 					fmt.Printf("Товара %s нет в каталоге \n", itemName)
 				}
@@ -98,9 +101,11 @@ func (order *Order) SetDiscount(userName string,
 		}
 	}
 	// посмотрим - набор это или нет - если набор пытаемся сделать дополнительную скидку
-	TotalSumNoDiscountByComplect := order.TotalSum
+	TotalSumNoDiscount := order.TotalSum       // без скидки
+	TotalSumNoDiscountByComplect := grandTotal // со скидкой - комплект не учтен
+	order.TotalSum = grandTotal
 	if order.OrderType == 1 {
-		order.TotalSum = order.TotalSum * addDisc
+		order.TotalSum = order.TotalSum * addDisc // со скидкой + комплект
 	}
 	// будем возвращать сумму без скидки , без скидки по комлекту , выставленную к оплате
 	return TotalSumNoDiscount, TotalSumNoDiscountByComplect, order.TotalSum

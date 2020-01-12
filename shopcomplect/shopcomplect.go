@@ -223,7 +223,9 @@ func orderRegister(acountList map[string]*mu.User, // список пользо�
 	itemsPrice map[string]*mu.ItemPrice, // справочник товаров
 	billList map[string]map[int]float32, // список счетов
 	UserName string, // имя пользователя
-	itemsList mu.Order) { // заказ
+	itemsList mu.Order,
+	// корректировочная скидка
+	addDisc float32) { // заказ
 	// проверим пользователя
 	vacountList, ok := acountList[UserName]
 	if !ok {
@@ -237,6 +239,28 @@ func orderRegister(acountList map[string]*mu.User, // список пользо�
 	}
 	// добавить ветку просмотра
 	tmp := seveListwithCostAndOrderType(ordersPrice, itemsPrice, itemsList)
+	/*
+	  Воспользуемся SetDiscount - сделаем скидку
+	*/
+	vtnoDiscount,
+		vtnoDiscountByComplect,
+		vorderTotalSum := tmp.SetDiscount(UserName, acountList, itemsPrice, addDisc)
+
+	if (vorderTotalSum != vtnoDiscount) ||
+		(vorderTotalSum != vtnoDiscountByComplect) {
+		fmt.Printf("СКИДКА ЕСТЬ :  без скидка  %.2f --\n "+
+			"(скидка пользователь и комплект ) %.2f --\n "+
+			"(скидка пользователь и комплект и скидочный коэф. )%.2f\n",
+			vtnoDiscount, vtnoDiscountByComplect, vorderTotalSum,
+		)
+	} else {
+		fmt.Printf("СКИДКИ НЕТ :  без скидка  %.2f --\n "+
+			"(скидка пользователь и комплект ) %.2f --\n "+
+			"(скидка пользователь и комплект и скидочный коэф. )%.2f\n",
+			vtnoDiscount, vtnoDiscountByComplect, vorderTotalSum,
+		)
+	}
+
 	saldo := vacountList.Account - tmp.TotalSum
 	ostatok := vacountList.Account
 	if saldo >= 0 {
@@ -403,28 +427,28 @@ func main() {
 		itemsPrice,   // справочник товаров
 		billList,     // список счетов
 		"Вася",       // пользователь
-		mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0, 0}) // список товаров
+		mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0, 0}, 0.8) // список товаров
 
 	orderRegister(acountList, // списки пользователь
 		&ordersPrice, // списки товаров с ценами
 		itemsPrice,   // справочник товаров
 		billList,     // список счетов
 		"Вася",       // пользователь
-		mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0, 0}) // список товаров
+		mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0, 0}, 0.8) // список товаров
 
 	orderRegister(acountList, // списки пользователь
 		&ordersPrice, // списки товаров с ценами
 		itemsPrice,   // справочник товаров
 		billList,     // список счетов
 		"Дима",       // пользователь
-		mu.Order{[]string{"Хлеб", "Сосиски"}, 0, 0}) // список товаров
+		mu.Order{[]string{"Хлеб", "Сосиски"}, 0, 0}, 0.8) // список товаров
 
 	orderRegister(acountList, // списки пользователь
 		&ordersPrice, // списки товаров с ценами
 		itemsPrice,   // справочник товаров
 		billList,     // список счетов
 		"Дима",       // пользователь
-		mu.Order{[]string{"Хлеб", "Сосиски"}, 0, 0}) // список товаров
+		mu.Order{[]string{"Хлеб", "Сосиски"}, 0, 0}, 0.8) // список товаров
 
 	fmt.Println("---------------------------")
 	//PrintUsers(acountList)
