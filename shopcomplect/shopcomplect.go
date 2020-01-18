@@ -1,7 +1,8 @@
-//  задание 2, 3
+//задание 2, 3
 package main
 
 import (
+	"flag"
 	"fmt"
 	mu "mutils/structsdef2"
 	"sort"
@@ -338,14 +339,21 @@ func showAccount(acountList map[string]*mu.User, p int) {
 
 func main() {
 
+	pMode := flag.String("pmod", "n", "s - save / l - load / ls - load and save ")
+	flag.Parse()
+	valMode := *pMode
+
 	acountList := map[string]*mu.User{} // каталог пользователей
 	// --- положим немного данных о пользователях
-	acountList["Вася"] = &mu.User{Email: "vasya@vlg.ru", Account: 800.0, UserType: 1}
-	acountList["Коля"] = &mu.User{Email: "kolya@volgatel.ru", Account: 200.0, UserType: 0}
-	acountList["Дима"] = &mu.User{Email: "dima@mail.ru", Account: 300.0, UserType: 1}
-	acountList["Петр"] = &mu.User{Email: "petr@onix.ru", Account: 125.0, UserType: 0}
+	if valMode == "l" || valMode == "ls" { // грузим из файла
 
-	PrintUsers(acountList)
+	} else {
+		acountList["Вася"] = &mu.User{Email: "vasya@vlg.ru", Account: 800.0, UserType: 1}
+		acountList["Коля"] = &mu.User{Email: "kolya@volgatel.ru", Account: 200.0, UserType: 0}
+		acountList["Дима"] = &mu.User{Email: "dima@mail.ru", Account: 300.0, UserType: 1}
+		acountList["Петр"] = &mu.User{Email: "petr@onix.ru", Account: 125.0, UserType: 0}
+		PrintUsers(acountList)
+	}
 
 	// Список счетов - история покупок
 	//         UserNAme accountList --> ID Order --> Сумма заказа
@@ -464,5 +472,12 @@ func main() {
 	showAccount(acountList, 2)
 	fmt.Println("----- по деньгам инверсия---")
 	showAccount(acountList, 3)
+
+	fmt.Println("----- сохранить справочники в файл ---")
+	if valMode == "s" || valMode == "ls" {
+		mu.SaveAcountList(acountList)
+		mu.SaveBillList(billList)
+		mu.SaveItemsPrice(itemsPrice)
+	}
 
 }
