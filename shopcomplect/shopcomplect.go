@@ -478,6 +478,7 @@ func main() {
 		mu.SaveAcountList(acountList)
 		mu.SaveBillList(billList)
 		mu.SaveItemsPrice(itemsPrice)
+		mu.SaveOrdersPrice(ordersPrice)
 	}
 
 }
