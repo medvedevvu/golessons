@@ -339,49 +339,58 @@ func showAccount(acountList map[string]*mu.User, p int) {
 
 func main() {
 
-	pMode := flag.String("pmod", "n", "s - save / l - load / ls - load and save ")
+	pMode := flag.String("pmod", "n", "s - save / l - load ")
 	flag.Parse()
 	valMode := *pMode
 
 	acountList := map[string]*mu.User{} // каталог пользователей
 	// --- положим немного данных о пользователях
-	if valMode == "l" || valMode == "ls" { // грузим из файла
-
+	if valMode == "l" { // грузим из файла
+		acountList = mu.LoadAcountList()
 	} else {
 		acountList["Вася"] = &mu.User{Email: "vasya@vlg.ru", Account: 800.0, UserType: 1}
 		acountList["Коля"] = &mu.User{Email: "kolya@volgatel.ru", Account: 200.0, UserType: 0}
 		acountList["Дима"] = &mu.User{Email: "dima@mail.ru", Account: 300.0, UserType: 1}
 		acountList["Петр"] = &mu.User{Email: "petr@onix.ru", Account: 125.0, UserType: 0}
-		PrintUsers(acountList)
 	}
+	PrintUsers(acountList)
 
 	// Список счетов - история покупок
 	//         UserNAme accountList --> ID Order --> Сумма заказа
 	billList := map[string]map[int]float32{}
-	billList["Вася"] = map[int]float32{0: 0.0}
-	billList["Коля"] = map[int]float32{0: 0.0}
-	billList["Дима"] = map[int]float32{0: 0.0}
-	billList["Петр"] = map[int]float32{0: 0.0}
+
+	if valMode == "l" { // грузим из файла
+		billList = mu.LoadBillList()
+	} else {
+		billList["Вася"] = map[int]float32{0: 0.0}
+		billList["Коля"] = map[int]float32{0: 0.0}
+		billList["Дима"] = map[int]float32{0: 0.0}
+		billList["Петр"] = map[int]float32{0: 0.0}
+	}
 	// первоначально нулевая история
 	fmt.Println(billList)
 
 	//                ItemName
 	itemsPrice := map[string]*mu.ItemPrice{} // каталог товаров
 	// --- положим немного данных в каталог
-	itemsPrice["Спички"] = &mu.ItemPrice{ItemPrice: 1.2, ItemType: 0}
-	itemsPrice["Хлеб"] = &mu.ItemPrice{ItemPrice: 20.15, ItemType: 0}
-	itemsPrice["Сыр"] = &mu.ItemPrice{ItemPrice: 200.05, ItemType: 0}
-	itemsPrice["Рыба"] = &mu.ItemPrice{ItemPrice: 150.45, ItemType: 1}
-	itemsPrice["Сосиски"] = &mu.ItemPrice{ItemPrice: 300.45, ItemType: 0}
-	itemsPrice["Зубочистки"] = &mu.ItemPrice{ItemPrice: 0, ItemType: 2}
+	if valMode == "l" { // грузим из файла
+		itemsPrice = mu.LoadItemsPrice()
+	} else {
+		itemsPrice["Спички"] = &mu.ItemPrice{ItemPrice: 1.2, ItemType: 0}
+		itemsPrice["Хлеб"] = &mu.ItemPrice{ItemPrice: 20.15, ItemType: 0}
+		itemsPrice["Сыр"] = &mu.ItemPrice{ItemPrice: 200.05, ItemType: 0}
+		itemsPrice["Рыба"] = &mu.ItemPrice{ItemPrice: 150.45, ItemType: 1}
+		itemsPrice["Сосиски"] = &mu.ItemPrice{ItemPrice: 300.45, ItemType: 0}
+		itemsPrice["Зубочистки"] = &mu.ItemPrice{ItemPrice: 0, ItemType: 2}
 
-	fmt.Println("----- добавление товара в каталог -----")
-	PrintCatalog(itemsPrice)
+		fmt.Println("----- добавление товара в каталог -----")
+		PrintCatalog(itemsPrice)
 
-	fmt.Println(addItemsPrice(itemsPrice, "Сосиски",
-		&mu.ItemPrice{ItemPrice: 255.41, ItemType: 1}))
-	fmt.Println(addItemsPrice(itemsPrice, "Ветчина",
-		&mu.ItemPrice{ItemPrice: 600.32, ItemType: 1}))
+		fmt.Println(addItemsPrice(itemsPrice, "Сосиски",
+			&mu.ItemPrice{ItemPrice: 255.41, ItemType: 1}))
+		fmt.Println(addItemsPrice(itemsPrice, "Ветчина",
+			&mu.ItemPrice{ItemPrice: 600.32, ItemType: 1}))
+	}
 	PrintCatalog(itemsPrice)
 
 	fmt.Println("----- сформировать заказ -----")
@@ -408,23 +417,26 @@ func main() {
 	// список заказов с посчитанной общей ценой и типом заказа
 
 	ordersPrice := []mu.Order{}
+	if valMode == "l" { // грузим из файла
+		ordersPrice = mu.LoadOrdersPrice()
+	} else {
 
-	fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
-		itemsPrice,
-		mu.Order{[]string{"Хлеб", "Сосиски", "Зубочистки"}, 0, 0}))
-	fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
-		itemsPrice,
-		mu.Order{[]string{"Хлеб", "Сыр"}, 0, 0}))
-	fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
-		itemsPrice,
-		mu.Order{[]string{"Хлеб", "Рыба"}, 0, 0}))
-	fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
-		itemsPrice,
-		mu.Order{[]string{"Хлеб", "Рыба"}, 0, 0}))
-	fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
-		itemsPrice,
-		mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0, 0}))
-
+		fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
+			itemsPrice,
+			mu.Order{[]string{"Хлеб", "Сосиски", "Зубочистки"}, 0, 0}))
+		fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
+			itemsPrice,
+			mu.Order{[]string{"Хлеб", "Сыр"}, 0, 0}))
+		fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
+			itemsPrice,
+			mu.Order{[]string{"Хлеб", "Рыба"}, 0, 0}))
+		fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
+			itemsPrice,
+			mu.Order{[]string{"Хлеб", "Рыба"}, 0, 0}))
+		fmt.Println(seveListwithCostAndOrderType(&ordersPrice,
+			itemsPrice,
+			mu.Order{[]string{"Хлеб", "Рыба", "Ветчина"}, 0, 0}))
+	}
 	fmt.Println(ordersPrice)
 
 	fmt.Println("----- 8 -----")
