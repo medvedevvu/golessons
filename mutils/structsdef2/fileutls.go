@@ -1,4 +1,4 @@
-package structsdef1
+package structsdef2
 
 import (
 	"bufio"
