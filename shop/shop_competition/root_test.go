@@ -1,0 +1,3 @@
+package shopcompetition
+
+//import "tests"

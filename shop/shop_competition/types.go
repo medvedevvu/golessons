@@ -1,4 +1,4 @@
-package shop_competition
+package shopcompetition
 
 const (
 	ProductNormal ProductType = iota
