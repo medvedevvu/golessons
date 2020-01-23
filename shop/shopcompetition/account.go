@@ -11,26 +11,24 @@ func Info() {
 }
 
 //AccountList := []Account{}
-type AccountList struct {
-	acc []Account
-}
+type AccountList []Account
 
 //Register
-func (ac *AccountList) Register(username string) error {
-	for _, item := range ac.acc {
+func (ac AccountList) Register(username string) error {
+	for _, item := range ac {
 		if item.Name == username {
 			return errors.New(fmt.Sprintf("пользователь %s",
 				username, " уже зарегестрирован !!!"))
 		}
 	}
-	ac.acc = append(ac.acc,
+	ac = append(ac,
 		Account{Name: username, Balance: 0, AccountType: AccountNormal})
 	return nil
 }
 
 //AddBalance
-func (ac *AccountList) AddBalance(username string, sum float32) error {
-	for _, item := range ac.acc {
+func (ac AccountList) AddBalance(username string, sum float32) error {
+	for _, item := range ac {
 		if item.Name == username {
 			item.Balance += sum
 			return nil
@@ -41,8 +39,8 @@ func (ac *AccountList) AddBalance(username string, sum float32) error {
 }
 
 //Balance
-func (ac *AccountList) Balance(username string) (float32, error) {
-	for _, item := range ac.acc {
+func (ac AccountList) Balance(username string) (float32, error) {
+	for _, item := range ac {
 		if item.Name == username {
 			return item.Balance, nil
 		}
@@ -52,7 +50,7 @@ func (ac *AccountList) Balance(username string) (float32, error) {
 }
 
 //GetAccounts
-func (ac *AccountList) GetAccounts(sort AccountSortType) []Account {
+func (ac AccountList) GetAccounts(sort AccountSortType) []Account {
 	switch sort {
 	case SortByName:
 		{
@@ -67,5 +65,5 @@ func (ac *AccountList) GetAccounts(sort AccountSortType) []Account {
 
 		}
 	}
-	return ac.acc
+	return ac
 }

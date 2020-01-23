@@ -1,7 +1,7 @@
 package main
 
 import (
-	cm "shop/shop_competition"
+	cm "shop/shopcompetition"
 )
 
 func main() {
