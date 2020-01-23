@@ -14,6 +14,12 @@ const (
 	SortByName AccountSortType = iota
 	SortByNameReverse
 	SortByBalance
+
+	exists0 = iota // точное совпадение товара в каталоге
+	exists1        // имя и тип "типа" совпали - обновим значения типа и цены
+	exists2        // тип "типа" не совпал
+	exists3        // по умолчанию
+	exists4        // товара нет в каталоге
 )
 
 //ProductType one of ProductNormal/ProductPremium/ProductSample
