@@ -14,23 +14,24 @@ func Info() {
 type AccountList []Account
 
 //Register
-func (ac AccountList) Register(username string) error {
-	for _, item := range ac {
+func (ac *AccountList) Register(username string) error {
+	for _, item := range *ac {
 		if item.Name == username {
 			return fmt.Errorf("пользователь %s уже зарегестрирован",
 				username)
 		}
 	}
-	ac = append(ac,
+	*ac = append(*ac,
 		Account{Name: username, Balance: 0, AccountType: AccountNormal})
 	return nil
 }
 
 //AddBalance
-func (ac AccountList) AddBalance(username string, sum float32) error {
-	for _, item := range ac {
+func (ac *AccountList) AddBalance(username string, sum float32) error {
+	for _, item := range *ac {
 		if item.Name == username {
-			item.Balance += sum
+			item.Balance = item.Balance + sum
+			fmt.Printf("%.2f -- %.2f\n", sum, item.Balance)
 			return nil
 		}
 	}
