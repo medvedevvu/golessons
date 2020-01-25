@@ -2,16 +2,11 @@ package shopcompetition
 
 import "fmt"
 
-/*
-AddProduct(Product) error
-ModifyProduct(Product) error
-RemoveProduct(name string) error
-*/
 //ProductList каталог товаров
 type ProductList []Product
 
 // RemoveProduct - удаляем продукт
-func (pl ProductList) RemoveProduct(name string) error {
+func (pl ProductList) RemoveProduct(name string) PCSError {
 	state := StNotFnd
 	for i, ipl := range pl {
 		if ipl.Name == name {
@@ -23,11 +18,13 @@ func (pl ProductList) RemoveProduct(name string) error {
 	}
 	switch state {
 	case StNotFnd:
-		return fmt.Errorf("товар %s не найден в каталоге ", name)
+		return PCSError{ErrCode: StNotFnd,
+			ErrMsg: fmt.Sprintf("товар %s не найден в каталоге ", name)}
 	case StDef:
-		return fmt.Errorf("товар %s удален из каталога ", name)
+		return PCSError{ErrCode: StDef,
+			ErrMsg: fmt.Sprintf("товар %s удален из каталога ", name)}
 	default:
-		return nil
+		return PCSError{ErrCode: StNil, ErrMsg: ""}
 	}
 }
 

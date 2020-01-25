@@ -69,5 +69,13 @@ func TestModifyProductWrongPrice(t *testing.T) {
 }
 
 func TestRemoveProduct(t *testing.T) {
-	//
+	prdList := ProductList{
+		Product{Name: "Колбаса", Price: 250.50, Type: ProductNormal},
+	}
+	err := prdList.RemoveProduct("Колбаса")
+	if err.ErrorCode() != StDef {
+		t.Errorf("%s %d ", err.Error(), err.ErrorCode())
+		return
+	}
+	t.Logf("%s %d ", err.Error(), err.ErrorCode())
 }
