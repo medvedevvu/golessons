@@ -15,11 +15,13 @@ const (
 	SortByNameReverse
 	SortByBalance
 
-	exists0 = iota // точное совпадение товара в каталоге
-	exists1        // имя и тип "типа" совпали - обновим значения типа и цены
-	exists2        // тип "типа" не совпал
-	exists3        // по умолчанию
-	exists4        // товара нет в каталоге
+	StInProd          ProductCatalogStateErrorType = iota // точное совпадение товара в каталоге
+	StNameAndTypeSame                                     // имя и тип "типа" совпали - обновим значения типа и цены
+	StTypeNotSame                                         // тип "типа" не совпал
+	StDef                                                 // по умолчанию
+	StNotFnd                                              // товара нет в каталоге
+	StWrongPrice                                          // не верная цена товара
+	StNil                                                 // не определное значение
 )
 
 //ProductType one of ProductNormal/ProductPremium/ProductSample
@@ -27,6 +29,23 @@ type ProductType uint8
 type BundleType uint8
 type AccountType uint8
 type AccountSortType uint8
+
+// тип ошибки при работе с каталогом продуктов
+type ProductCatalogStateErrorType uint8
+
+// ошибки при работе с каталогом продуктов
+type PCSError struct {
+	ErrMsg  string
+	ErrCode ProductCatalogStateErrorType
+}
+
+func (er PCSError) Error() string {
+	return er.ErrMsg
+}
+
+func (er PCSError) ErrorCode() ProductCatalogStateErrorType {
+	return er.ErrCode
+}
 
 type Product struct {
 	Name  string

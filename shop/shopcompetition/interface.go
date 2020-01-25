@@ -12,8 +12,8 @@ type Shop interface {
 
 //ProductModifier - интерфейс для работы со списком продуктов магазина
 type ProductModifier interface {
-	AddProduct(Product) error
-	ModifyProduct(Product) error
+	AddProduct(Product) PCSError    // error
+	ModifyProduct(Product) PCSError // error
 	RemoveProduct(name string) error
 }
 
