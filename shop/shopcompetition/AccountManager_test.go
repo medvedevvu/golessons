@@ -6,7 +6,7 @@ import (
 
 func TestRegister(t *testing.T) {
 	accList := new(AccountList)
-	nameList := []string{"Vasily", "Vasily", "Petr", "Oleg"}
+	nameList := []string{"Vasily", "Petr", "Oleg"}
 	for _, name := range nameList {
 		err := accList.Register(name)
 		if err != nil {
@@ -14,6 +14,18 @@ func TestRegister(t *testing.T) {
 		}
 	}
 	t.Log(accList)
+}
+
+func TestWrongRegister(t *testing.T) {
+	accList := new(AccountList)
+	name := "Vasily"
+	err := accList.Register(name)
+	err = accList.Register(name)
+	if err != nil {
+		t.Logf("не смогли зарегестрировать такой пользователь %s уже есть ", name)
+		return
+	}
+	t.Errorf("не прошла проверка на дублирование имени пользователя %s", name)
 }
 
 func TestAddBalance(t *testing.T) {
@@ -42,10 +54,12 @@ func TestAddWrongBalance(t *testing.T) {
 	var bl float32 = -102.3
 	err = accList.AddBalance(name, bl)
 	if err != nil {
-		t.Errorf(" Пользователю %s пытаемся установить отрицательный  %.2f баланс ",
+		t.Logf(" Пользователю %s пытаемся установить отрицательный  %.2f баланс ",
 			name, bl)
+		return
 	}
-	t.Log(accList)
+	t.Errorf("Не прошла проверка на отрицательный баланс %.2f для пользователя %s",
+		bl, name)
 }
 
 func TestBalance(t *testing.T) {
@@ -72,9 +86,21 @@ func TestGetAccounts(t *testing.T) {
 		Account{Name: "Leo", AccountType: AccountNormal, Balance: 111.45},
 	})
 	vacc := accList.GetAccounts(SortByName)
-	t.Log(vacc)
+	if vacc[0].Name != "Alex" {
+		t.Errorf("Сортировка SortByName не выполнена")
+	} else {
+		t.Log(vacc)
+	}
 	vacc = accList.GetAccounts(SortByNameReverse)
-	t.Log(vacc)
+	if vacc[0].Name != "Vasily" {
+		t.Errorf("Сортировка SortByNameReverse не выполнена")
+	} else {
+		t.Log(vacc)
+	}
 	vacc = accList.GetAccounts(SortByBalance)
-	t.Log(vacc)
+	if vacc[0].Name != "Leo" {
+		t.Errorf("Сортировка SortByBalance не выполнена")
+	} else {
+		t.Log(vacc)
+	}
 }
