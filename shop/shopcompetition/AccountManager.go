@@ -27,11 +27,13 @@ func (ac *AccountList) Register(username string) error {
 }
 
 //AddBalance
-func (ac *AccountList) AddBalance(username string, sum float32) error {
-	for _, item := range *ac {
-		if item.Name == username {
-			item.Balance = item.Balance + sum
-			fmt.Printf("%.2f -- %.2f\n", sum, item.Balance)
+func (ac AccountList) AddBalance(username string, sum float32) error {
+	if sum < 0 {
+		return fmt.Errorf("баланс %.2f должен быть положительный ", sum)
+	}
+	for idx := range ac {
+		if ac[idx].Name == username {
+			ac[idx].Balance += sum
 			return nil
 		}
 	}
