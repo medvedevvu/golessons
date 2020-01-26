@@ -27,8 +27,9 @@ type AccountManager interface {
 
 //OrderManager - интерфейс для работы заказами. Рассчитать заказ и купить.
 type OrderManager interface {
-	CalculateOrder(order Order) (float32, error)
-	PlaceOrder(username string, order Order) error
+	CalculateOrder(account Account, order Order, addDisc float32) (float32, error) // addDisc - дополнительная скидка
+	//PlaceOrder(username string, order Order) error //
+	PlaceOrder(account Account, order Order) error //
 }
 
 //BundleManager - интерфейс для работы с наборами.

@@ -22,6 +22,8 @@ const (
 	StNotFnd                                              // товара нет в каталоге
 	StWrongPrice                                          // не верная цена товара
 	StNil                                                 // не определное значение
+	StEmptyOrder                                          // пустой заказ
+	StNotMany                                             // мало средств баланс
 )
 
 //ProductType one of ProductNormal/ProductPremium/ProductSample
