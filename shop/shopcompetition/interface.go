@@ -2,12 +2,18 @@ package shopcompetition
 
 //Shop - сборный интерфейс магазина. Объект реализующий этот интерфейс будет тестироваться.
 //Если реализованы не все методы, оставить заглушки.
-type Shop interface {
+
+/*type Shop interface {
 	ProductModifier
 	AccountManager
 	OrderManager
 	Importer
 	Exporter
+}*/
+
+type Shop struct {
+	AccountList
+	ProductList
 }
 
 //ProductModifier - интерфейс для работы со списком продуктов магазина

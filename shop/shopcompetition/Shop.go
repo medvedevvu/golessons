@@ -7,11 +7,6 @@ package shopcompetition
 	Importer
 	Exporter
 }*/
-//Shop main
-type Shop struct {
-	AccountList
-	ProductList
-}
 
 //NewShop  - constructor
 func NewShop(acc AccountList, prdlist ProductList) *Shop {
@@ -55,11 +50,15 @@ func (s *Shop) GetAccounts(sort AccountSortType) AccountList {
 }
 
 // Export
-func (s *Shop) Export() ([]byte, error) {
-	data, err := s.Export()
-	return data, err
+func (s *Shop) Export() (dataAcc []byte, dataPrd []byte, errAcc error, errPrd error) {
+	dataAcc, errAcc = s.AccountList.Export()
+	dataPrd, errPrd = s.ProductList.Export()
+	return dataAcc, dataPrd, errAcc, errPrd
 }
 
-func (s *Shop) Import(data []byte) error {
-	return s.Import(data)
+// Export
+func (s *Shop) Import(dataAcc, dataPrd []byte) (errAcc error, errPrd error) {
+	errAcc = s.AccountList.Import(dataAcc)
+	errPrd = s.ProductList.Import(dataPrd)
+	return errAcc, errPrd
 }
