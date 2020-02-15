@@ -12,9 +12,11 @@ type Shop interface {
 
 //ProductModifier - интерфейс для работы со списком продуктов магазина
 type ProductModifier interface {
-	AddProduct(Product) error
-	ModifyProduct(Product) error
-	RemoveProduct(name string) error
+	AddProduct(productName string, product Product) error
+	ModifyProduct(productName string, product Product) error
+	RemoveProduct(productName string) error
+	// проверка атрибутов товара
+	CheckAttrsOfProduct(productName string, product Product, operation OperationType) error
 }
 
 //AccountManager - интерфейс для работы с пользователями.
@@ -29,6 +31,7 @@ type AccountManager interface {
 type OrderManager interface {
 	CalculateOrder(order Order) (float32, error)
 	PlaceOrder(username string, order Order) error
+	OrderPicking()
 }
 
 //BundleManager - интерфейс для работы с наборами.
