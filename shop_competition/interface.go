@@ -22,7 +22,7 @@ type AccountManager interface {
 	Register(username string) error
 	AddBalance(username string, sum float32) error
 	Balance(username string) (float32, error)
-	GetAccounts(sort AccountSortType) []Account
+	GetAccounts(sort AccountSortType) AccountsList //[]Account
 }
 
 //OrderManager - интерфейс для работы заказами. Рассчитать заказ и купить.
@@ -46,4 +46,9 @@ type Exporter interface {
 //Importer - интерфейс для загрузки состояния магазина. Принимает формат который возвращает Exporter.
 type Importer interface {
 	Import(data []byte) error
+}
+
+// ShopInfo - краткая информация о магазине
+func ShopInfo() string {
+	return "Shop-commercial"
 }

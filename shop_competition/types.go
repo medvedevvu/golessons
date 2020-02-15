@@ -23,10 +23,13 @@ type AccountType uint8
 type AccountSortType uint8
 
 type Product struct {
-	Name  string
+	//	Name  string
 	Price float32
 	Type  ProductType
 }
+
+// ProductsList  все товары map[Name]*Product
+type ProductsList map[string]*Product
 
 type Order struct {
 	Products []Product
@@ -40,7 +43,10 @@ type Bundle struct {
 }
 
 type Account struct {
-	Name    string
+	//	Name    string    Вынес в ключевое значение для AccountsList
 	Balance float32
 	AccountType
 }
+
+// AccountsList Список всех пользоватиелей map[Name]*Account
+type AccountsList map[string]*Account
