@@ -8,8 +8,15 @@ import (
 )
 
 // NewAccountsList коструктор
+var gaccountsList *AccountsList
+
 func NewAccountsList() *AccountsList {
-	return &AccountsList{}
+	gaccountsList = &AccountsList{}
+	return gaccountsList
+}
+
+func GetAccountsList() *AccountsList {
+	return gaccountsList
 }
 
 // Register - регистрация пользователя

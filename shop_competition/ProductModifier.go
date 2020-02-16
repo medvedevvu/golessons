@@ -6,17 +6,17 @@ import (
 	"strings"
 )
 
-/*
-type ProductModifier interface {
-	AddProduct(productName string, product Product) error
-	ModifyProduct(productName string, product Product) error
-	RemoveProduct(productName string) error
-}
-type ProductsList map[string]*Product
-*/
+var gproductList *ProductsList
+
 // NewProductsList конструктор
 func NewProductsList() *ProductsList {
-	return &ProductsList{}
+	gproductList = &ProductsList{}
+	return gproductList
+}
+
+// GetProductList возвращает каталог товаров
+func GetProductList() *ProductsList {
+	return gproductList
 }
 
 //CheckAttrsOfProduct проверка атрибутов товара

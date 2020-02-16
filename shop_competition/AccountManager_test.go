@@ -52,7 +52,6 @@ func TestAddBalance(t *testing.T) {
 	if v != (*vtest)["Vasiy"].Balance {
 		t.Errorf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
 	}
-	t.Log("\n FINISH")
 }
 
 func TestGetAccounts(t *testing.T) {

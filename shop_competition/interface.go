@@ -17,6 +17,7 @@ type ProductModifier interface {
 	RemoveProduct(productName string) error
 	// проверка атрибутов товара
 	CheckAttrsOfProduct(productName string, product Product, operation OperationType) error
+	GetProductList() *ProductsList
 }
 
 //AccountManager - интерфейс для работы с пользователями.
@@ -29,16 +30,19 @@ type AccountManager interface {
 
 //OrderManager - интерфейс для работы заказами. Рассчитать заказ и купить.
 type OrderManager interface {
-	CalculateOrder(order Order) (float32, error)
 	PlaceOrder(username string, order Order) error
-	OrderPicking()
+	//CalculateOrder(order Order) (float32, error)
 }
 
 //BundleManager - интерфейс для работы с наборами.
 type BundleManager interface {
-	AddBundle(name string, main Product, discount float32, additional ...Product) error
+	AddBundle(name string,
+		main string, // название основного продукта
+		discount float32, additional ...string, // все остальные товары комлекта
+	) error
 	ChangeDiscount(name string, discount float32) error
 	RemoveBundle(name string) error
+	GetBundlesList() *BundlesList
 }
 
 //Exporter - интерфейс для получения полного состояния магазина.
