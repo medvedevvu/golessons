@@ -22,7 +22,7 @@ type ProductModifier interface {
 
 //AccountManager - интерфейс для работы с пользователями.
 type AccountManager interface {
-	Register(username string) error
+	Register(username string, accounttype AccountType) error
 	AddBalance(username string, sum float32) error
 	Balance(username string) (float32, error)
 	GetAccounts(sort AccountSortType) AccountsList //[]Account

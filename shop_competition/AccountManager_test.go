@@ -6,10 +6,10 @@ import (
 
 func InitAccountList() *AccountsList {
 	testAccList := NewAccountsList()
-	testAccList.Register("Kola")
-	testAccList.Register("Vasiy")
-	testAccList.Register("Dram")
-	testAccList.Register("Vortis")
+	testAccList.Register("Kola", AccountNormal)
+	testAccList.Register("Vasiy", AccountNormal)
+	testAccList.Register("Dram", AccountPremium)
+	testAccList.Register("Vortis", AccountPremium)
 	return testAccList
 }
 func TestNewAccountsList(t *testing.T) {
@@ -18,19 +18,18 @@ func TestNewAccountsList(t *testing.T) {
 	if !ok {
 		t.Fatalf("Init fail with user %s", "Dram")
 	}
-	err := vtest.Register("Boris")
+	err := vtest.Register("Boris", AccountPremium)
 	if err != nil {
 		t.Fatalf("Fail with register user %s", "Boris")
 	}
-	err = vtest.Register("Boris")
+	err = vtest.Register("Boris", AccountPremium)
 	if err == nil {
 		t.Fatalf("Fail with register twice user %s", "Boris")
 	}
-	err = vtest.Register("")
+	err = vtest.Register("", AccountPremium)
 	if err == nil {
 		t.Fatalf("Fail with register empty name user %s", "Boris")
 	}
-	t.Logf("%v", vtest)
 }
 
 func TestAddBalance(t *testing.T) {
@@ -41,27 +40,27 @@ func TestAddBalance(t *testing.T) {
 	for key, vals := range names {
 		err := vtest.AddBalance(key, vals)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 	}
 
 	v, err := vtest.Balance("Vasiy")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if v != (*vtest)["Vasiy"].Balance {
-		t.Errorf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
+		t.Fatalf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
 	}
 }
 
-func TestGetAccounts(t *testing.T) {
+func TestSetBalance(t *testing.T) {
 	vtest := NewAccountsList()
-	vtest.Register("Ada")
-	vtest.Register("Vasiy")
-	vtest.Register("Gladis")
-	vtest.Register("Boris")
-	vtest.Register("Fargus")
-	vtest.Register("Wilams")
+	vtest.Register("Ada", AccountPremium)
+	vtest.Register("Vasiy", AccountPremium)
+	vtest.Register("Gladis", AccountNormal)
+	vtest.Register("Boris", AccountNormal)
+	vtest.Register("Fargus", AccountNormal)
+	vtest.Register("Wilams", AccountNormal)
 
 	names := map[string]float32{"Ada": 1111.12,
 		"Vasiy": 2222.21, "Boris": 3333, "Gladis": 5555,
@@ -70,7 +69,7 @@ func TestGetAccounts(t *testing.T) {
 	for key, vals := range names {
 		err := vtest.AddBalance(key, vals)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 	}
 

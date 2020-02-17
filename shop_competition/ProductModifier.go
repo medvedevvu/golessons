@@ -2,7 +2,6 @@ package shop_competition
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 )
 
@@ -47,13 +46,8 @@ func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 		return fmt.Errorf("0 цена только у пробников !")
 	}
 
-	if product.Type <= 0 {
-		return fmt.Errorf("у продукта %s не верное значение типа %d",
-			productName, product.Type)
-	}
-	if reflect.TypeOf(product.Type) != reflect.TypeOf(ProductNormal) {
-		return fmt.Errorf("у продукта %s не допустимый тип %v",
-			productName, product.Type)
+	if product.Price != 0 && product.Type == ProductSample {
+		return fmt.Errorf("цена у пробников только 0 !")
 	}
 
 	return nil

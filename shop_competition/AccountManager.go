@@ -2,7 +2,6 @@ package shop_competition
 
 import (
 	"fmt"
-	"reflect"
 	sorting "sort"
 	"strings"
 )
@@ -20,21 +19,21 @@ func GetAccountsList() *AccountsList {
 }
 
 // Register - регистрация пользователя
-func (accountsList *AccountsList) Register(username string) error {
+func (accountsList *AccountsList) Register(username string, accounttype AccountType) error {
 	if len(strings.Trim(username, "")) == 0 {
 		return fmt.Errorf("username %s пустое ", username)
 	}
-	vaccount, ok := (*accountsList)[username]
+	_, ok := (*accountsList)[username]
 	if ok {
 		return fmt.Errorf("такой пользователь %s уже есть ", username)
 	}
-	if reflect.TypeOf(vaccount.AccountType) !=
-		reflect.TypeOf(AccountNormal) {
-		return fmt.Errorf("у пользователя %s не допустимый тип %v ",
-			username, vaccount.AccountType)
-	}
-
-	(*accountsList)[username] = &Account{AccountType: AccountNormal, Balance: 0}
+	/*	if reflect.TypeOf(vaccount.AccountType) !=
+			reflect.TypeOf(AccountNormal) {
+			return fmt.Errorf("у пользователя %s не допустимый тип %v ",
+				username, vaccount.AccountType)
+		}
+	*/
+	(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
 	return nil
 }
 

@@ -41,7 +41,7 @@ func (bundlesList *BundlesList) AddBundle(name string,
 	discount float32,
 	additional ...string) error {
 	_, ok := (*bundlesList)[name]
-	if !ok {
+	if ok {
 		return fmt.Errorf("комплект %s уже есть в каталоге", name)
 	}
 	vproductList := GetProductList() // получить каталог товаров
@@ -62,16 +62,18 @@ func (bundlesList *BundlesList) AddBundle(name string,
 			countSample++ // посчитаем ProductSample
 		}
 	}
-
+	if countSample > 1 {
+		return fmt.Errorf("в комплекте может быть только один пробник ")
+	}
 	if len(additional) == 2 && countSample == 1 {
 		(*bundlesList)[name] = Bundle{ProductsName: additional,
 			Type:     BundleSample,
-			Discount: discount,
+			Discount: 1 - discount,
 		}
 	} else {
 		(*bundlesList)[name] = Bundle{ProductsName: additional,
 			Type:     BundleNormal,
-			Discount: discount,
+			Discount: 1 - discount,
 		}
 	}
 	return nil
