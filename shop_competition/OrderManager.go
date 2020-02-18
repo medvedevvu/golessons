@@ -10,6 +10,11 @@ func NewAccountsOrders() *AccountsOrders {
 	return gaccountsOrders
 }
 
+// GetAccountsOrders получить список список Account -> Orders
+func GetAccountsOrders() *AccountsOrders {
+	return gaccountsOrders
+}
+
 // PlaceOrder
 func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) error {
 	vaccountsList := GetAccountsList()
