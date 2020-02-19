@@ -3,13 +3,17 @@ package shop_competition
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
 
 var gproductList *ProductsList
+var once3 sync.Once
 
 // NewProductsList конструктор
 func NewProductsList() *ProductsList {
-	gproductList = &ProductsList{}
+	once3.Do(func() {
+		gproductList = &ProductsList{}
+	})
 	return gproductList
 }
 
@@ -21,12 +25,10 @@ func GetProductList() *ProductsList {
 //CheckAttrsOfProduct проверка атрибутов товара
 func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 	product Product, operation OperationType) error {
-
 	if len(strings.Trim(productName, "")) == 0 {
 		return fmt.Errorf("у продукта нет названия")
 	}
 	_, ok := (*productsList)[productName]
-
 	if operation == Add {
 		if ok {
 			return fmt.Errorf("продукт %s уже есть", productName)
@@ -36,20 +38,16 @@ func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 			return fmt.Errorf("продукта %s нет в каталоге", productName)
 		}
 	}
-
 	if product.Price < 0 {
 		return fmt.Errorf("у продукта %s не допуситимая цена %f",
 			productName, product.Price)
 	}
-
 	if product.Price == 0 && product.Type != ProductSample {
 		return fmt.Errorf("0 цена только у пробников !")
 	}
-
 	if product.Price != 0 && product.Type == ProductSample {
 		return fmt.Errorf("цена у пробников только 0 !")
 	}
-
 	return nil
 }
 

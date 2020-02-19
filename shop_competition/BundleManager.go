@@ -1,12 +1,18 @@
 package shop_competition
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 var gbundlesList *BundlesList
+var once1 sync.Once
 
 //NewAccountsBundles конструктор
 func NewBundlesList() *BundlesList {
-	gbundlesList = &BundlesList{}
+	once1.Do(func() {
+		gbundlesList = &BundlesList{}
+	})
 	return gbundlesList
 }
 

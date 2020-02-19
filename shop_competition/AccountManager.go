@@ -4,13 +4,17 @@ import (
 	"fmt"
 	sorting "sort"
 	"strings"
+	"sync"
 )
 
 // NewAccountsList коструктор
 var gaccountsList *AccountsList
+var once sync.Once
 
 func NewAccountsList() *AccountsList {
-	gaccountsList = &AccountsList{}
+	once.Do(func() {
+		gaccountsList = &AccountsList{}
+	})
 	return gaccountsList
 }
 
@@ -27,12 +31,6 @@ func (accountsList *AccountsList) Register(username string, accounttype AccountT
 	if ok {
 		return fmt.Errorf("такой пользователь %s уже есть ", username)
 	}
-	/*	if reflect.TypeOf(vaccount.AccountType) !=
-			reflect.TypeOf(AccountNormal) {
-			return fmt.Errorf("у пользователя %s не допустимый тип %v ",
-				username, vaccount.AccountType)
-		}
-	*/
 	(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
 	return nil
 }

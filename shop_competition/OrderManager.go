@@ -1,12 +1,18 @@
 package shop_competition
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 var gaccountsOrders *AccountsOrders
+var once2 sync.Once
 
 //NewAccountsOrders конструктор
 func NewAccountsOrders() *AccountsOrders {
-	gaccountsOrders = &AccountsOrders{}
+	once2.Do(func() {
+		gaccountsOrders = &AccountsOrders{}
+	})
 	return gaccountsOrders
 }
 
@@ -72,7 +78,7 @@ func getDiscount(accountType AccountType, productType ProductType) (discount flo
 		case ProductNormal:
 			discount = 1
 		}
-	default:
+		//default:
 	}
 	return discount
 }
