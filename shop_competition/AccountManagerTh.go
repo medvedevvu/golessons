@@ -1,15 +1,20 @@
 package shop_competition
 
 import (
+	"errors"
 	"fmt"
 	sorting "sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 // NewAccountsList коструктор
-var gaccountsList *AccountsList
-var once sync.Once
+var (
+	gaccountsList *AccountsList
+	once          sync.Once
+	lmu           sync.RWMutex
+)
 
 func NewAccountsList() *AccountsList {
 	once.Do(func() {
@@ -23,16 +28,55 @@ func GetAccountsList() *AccountsList {
 }
 
 // Register - регистрация пользователя
+
 func (accountsList *AccountsList) Register(username string, accounttype AccountType) error {
+	const Timeout = time.Second
+	timer := time.NewTimer(Timeout)
+	res := make(chan string)
+
+	go func() {
+		res = (*accountsList).helperRegister(username, accounttype)
+	}()
+
+	defer func() {
+		close(res)
+		timer.Stop()
+	}()
+
+	msg := ""
+loop:
+	for {
+		select {
+		case resualt := <-res:
+			if resualt != "" {
+				msg = fmt.Sprintf("%s", resualt)
+			}
+		case <-timer.C:
+			msg = fmt.Sprintf("Exit by timeout")
+			break loop
+		}
+	}
+	return errors.New(msg)
+}
+
+func (accountsList *AccountsList) helperRegister(username string, accounttype AccountType) chan string {
+	cherr := make(chan string)
 	if len(strings.Trim(username, "")) == 0 {
-		return fmt.Errorf("username %s пустое ", username)
+		cherr <- fmt.Sprintf("username %s пустое ", username)
+		return cherr
 	}
+	lmu.Lock()
 	_, ok := (*accountsList)[username]
+	lmu.Unlock()
 	if ok {
-		return fmt.Errorf("такой пользователь %s уже есть ", username)
+		cherr <- fmt.Sprintf("такой пользователь %s уже есть ", username)
+		return cherr
 	}
+	lmu.RLock()
 	(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
-	return nil
+	lmu.RUnlock()
+	cherr <- ""
+	return cherr
 }
 
 // AddBalance - добавим баланс

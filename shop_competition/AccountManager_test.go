@@ -12,6 +12,10 @@ func InitAccountList() *AccountsList {
 	testAccList.Register("Vortis", AccountPremium)
 	return testAccList
 }
+func TestInitAccountList(t *testing.T) {
+	vtest := InitAccountList()
+	t.Logf("%v", vtest)
+}
 func TestNewAccountsList(t *testing.T) {
 	vtest := InitAccountList()
 	_, ok := (*vtest)["Dram"]
