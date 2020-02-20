@@ -1,7 +1,7 @@
 # golessons
 I study golang
 <HR>
-HWORK5
+HWORK501
 <HR>
-Rebuild Shop
+Теперь попробую сделать из него потоковый магазин 
 <HR>
