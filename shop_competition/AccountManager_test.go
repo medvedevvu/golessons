@@ -12,6 +12,14 @@ func InitAccountList() *AccountsList {
 	testAccList.Register("Vortis", AccountPremium)
 	return testAccList
 }
+
+func TestInitAccountList(t *testing.T) {
+	if len(*InitAccountList()) == 0 {
+		t.Fatalf("не выполнена инициализация ")
+	}
+
+}
+
 func TestNewAccountsList(t *testing.T) {
 	vtest := InitAccountList()
 	_, ok := (*vtest)["Dram"]

@@ -1,10 +1,12 @@
 package shop_competition
 
 import (
+	"errors"
 	"fmt"
 	sorting "sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 // NewAccountsList коструктор
@@ -24,15 +26,51 @@ func GetAccountsList() *AccountsList {
 
 // Register - регистрация пользователя
 func (accountsList *AccountsList) Register(username string, accounttype AccountType) error {
-	if len(strings.Trim(username, "")) == 0 {
-		return fmt.Errorf("username %s пустое ", username)
+	done := make(chan struct{})
+	errmsg := make(chan string, 1)
+	go func() {
+		var localmutex sync.Mutex
+		defer close(done)
+		func() {
+			if len(strings.Trim(username, "")) == 0 {
+				errmsg <- fmt.Sprintf("username %s пустое ", username)
+				return
+			}
+			localmutex.Lock()
+			_, ok := (*accountsList)[username]
+			if ok {
+				localmutex.Unlock()
+				errmsg <- fmt.Sprintf("такой пользователь %s уже есть ", username)
+				return
+			}
+			(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
+			localmutex.Unlock()
+			errmsg <- ""
+			return
+		}()
+	}()
+	lerrm := ""
+
+	select {
+	case <-done:
+		_, opend := <-errmsg
+		if opend {
+			close(errmsg)
+		}
+		for errm := range errmsg {
+			if errm != "" {
+				lerrm = errm
+			}
+		}
+	case <-time.After(time.Second):
+		lerrm = "Превышен интервал ожидания"
 	}
-	_, ok := (*accountsList)[username]
-	if ok {
-		return fmt.Errorf("такой пользователь %s уже есть ", username)
+
+	if lerrm != "" {
+		return errors.New(lerrm)
+	} else {
+		return nil
 	}
-	(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
-	return nil
 }
 
 // AddBalance - добавим баланс
