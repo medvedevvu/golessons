@@ -66,7 +66,7 @@ func (accountsList *AccountsList) Register(username string, accounttype AccountT
 	return nil
 }
 
-// Register1 - регистрация пользователя старая весрия
+// OLDRegister1 - регистрация пользователя старая весрия
 func (accountsList *AccountsList) OLDRegister1(username string, accounttype AccountType) error {
 	done := make(chan struct{})
 	errmsg := make(chan string, 1)
@@ -117,24 +117,87 @@ func (accountsList *AccountsList) OLDRegister1(username string, accounttype Acco
 // AddBalance - добавим баланс
 func (accountsList *AccountsList) AddBalance(username string,
 	sum float32) error {
-	acc, ok := (*accountsList)[username]
-	if !ok {
-		return fmt.Errorf("Пользователь %s не найден", username)
+	done := make(chan struct{})
+	errmsg := make(chan string, 1)
+
+	var localmutex sync.Mutex
+	timer := time.NewTimer(time.Second)
+
+	go func() {
+		defer close(done)
+		localmutex.Lock()
+		acc, ok := (*accountsList)[username]
+		if !ok {
+			localmutex.Unlock()
+			errmsg <- fmt.Sprintf("Пользователь %s не найден", username)
+			return
+		}
+		if sum <= 0 {
+			localmutex.Unlock()
+			errmsg <- fmt.Sprintf("не дoпустимый баланс  %f ", sum)
+			return
+		}
+		acc.Balance += sum
+		localmutex.Unlock()
+		errmsg <- ""
+		return
+	}()
+
+	select {
+	case <-done:
+	case <-timer.C:
+		errmsg <- "Превышен интервал ожидания"
 	}
-	if sum <= 0 {
-		return fmt.Errorf("не дoпустимый баланс  %f ", sum)
+
+	for errm := range errmsg {
+		if errm != "" {
+			return errors.New(errm)
+		}
+		return nil
 	}
-	acc.Balance += sum
 	return nil
 }
 
 // Balance - получить баланс
 func (accountsList *AccountsList) Balance(username string) (float32, error) {
-	acc, ok := (*accountsList)[username]
-	if !ok {
-		return 0, fmt.Errorf("Пользователь %s не найден", username)
+	type vmsgType struct {
+		balance float32
+		errmsg  string
 	}
-	return acc.Balance, nil
+
+	done := make(chan struct{})
+	vmsg := make(chan vmsgType, 1)
+
+	var localmutex sync.Mutex
+	timer := time.NewTimer(time.Second)
+
+	go func() {
+		defer close(done)
+		localmutex.Lock()
+		acc, ok := (*accountsList)[username]
+		localmutex.Unlock()
+		if !ok {
+			vmsg <- vmsgType{balance: 0,
+				errmsg: fmt.Sprintf("Пользователь %s не найден", username)}
+			return
+		}
+		vmsg <- vmsgType{balance: acc.Balance, errmsg: "ok"}
+		return
+	}()
+
+	select {
+	case <-done:
+	case <-timer.C:
+		vmsg <- vmsgType{balance: 0, errmsg: "Превышен интервал ожидания"}
+	}
+	for errm := range vmsg {
+		if errm.errmsg != "" {
+			return errm.balance, errors.New(errm.errmsg)
+		} else {
+			return 0, nil
+		}
+	}
+	return 0, nil
 }
 
 // GetAccounts - сортируем аккаунты

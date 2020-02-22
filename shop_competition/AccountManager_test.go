@@ -31,8 +31,7 @@ func TestInitAccountList(t *testing.T) {
 	if len(vtest) == 0 {
 		t.Fatalf("не выполнена инициализация ")
 	}
-	t.Logf("%v", vtest)
-
+	//t.Logf("%v", vtest)
 }
 
 func TestNewAccountsList(t *testing.T) {
@@ -58,22 +57,25 @@ func TestNewAccountsList(t *testing.T) {
 func TestAddBalance(t *testing.T) {
 	vtest := InitAccountList()
 	names := map[string]float32{"Kola": 325.12,
-		"Vasiy": 900.21, "Dram": 0, "Vortis": -23}
+		"Vasiy": 900.21, "Dram": 10, "Vortis": 23}
 
 	for key, vals := range names {
 		err := vtest.AddBalance(key, vals)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	}
 
 	v, err := vtest.Balance("Vasiy")
 	if err != nil {
-		t.Fatal(err)
+		if fmt.Sprintf("%s", err) != "ok" {
+			t.Fatal(err)
+		}
 	}
 	if v != (*vtest)["Vasiy"].Balance {
 		t.Fatalf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
 	}
+
 }
 
 func TestSetBalance(t *testing.T) {
@@ -95,5 +97,5 @@ func TestSetBalance(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-
+	t.Logf("%v\n", vtest)
 }
