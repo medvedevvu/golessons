@@ -28,6 +28,48 @@ func GetAccountsList() *AccountsList {
 func (accountsList *AccountsList) Register(username string, accounttype AccountType) error {
 	done := make(chan struct{})
 	errmsg := make(chan string, 1)
+
+	go func() {
+		var localmutex sync.Mutex
+		timer := time.NewTimer(time.Second)
+		go func() {
+			defer close(done)
+			if len(strings.Trim(username, "")) == 0 {
+				errmsg <- fmt.Sprintf("username %s пустое ", username)
+				return
+			}
+			localmutex.Lock()
+			_, ok := (*accountsList)[username]
+			if ok {
+				localmutex.Unlock()
+				errmsg <- fmt.Sprintf("такой пользователь %s уже есть ", username)
+				return
+			}
+			(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
+			localmutex.Unlock()
+			errmsg <- ""
+			return
+		}()
+		select {
+		case <-done:
+		case <-timer.C:
+			errmsg <- "Превышен интервал ожидания"
+		}
+	}()
+
+	for errm := range errmsg {
+		if errm != "" {
+			return errors.New(errm)
+		}
+		return nil
+	}
+	return nil
+}
+
+// Register1 - регистрация пользователя старая весрия
+func (accountsList *AccountsList) OLDRegister1(username string, accounttype AccountType) error {
+	done := make(chan struct{})
+	errmsg := make(chan string, 1)
 	go func() {
 		var localmutex sync.Mutex
 		defer close(done)
@@ -50,7 +92,6 @@ func (accountsList *AccountsList) Register(username string, accounttype AccountT
 		}()
 	}()
 	lerrm := ""
-
 	select {
 	case <-done:
 		_, opend := <-errmsg

@@ -1,22 +1,37 @@
 package shop_competition
 
 import (
+	"fmt"
 	"testing"
 )
 
 func InitAccountList() *AccountsList {
 	testAccList := NewAccountsList()
-	testAccList.Register("Kola", AccountNormal)
-	testAccList.Register("Vasiy", AccountNormal)
-	testAccList.Register("Dram", AccountPremium)
-	testAccList.Register("Vortis", AccountPremium)
+	err := testAccList.Register("Kola", AccountNormal)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = testAccList.Register("Vasiy", AccountNormal)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = testAccList.Register("Dram", AccountPremium)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = testAccList.Register("Vortis", AccountPremium)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return testAccList
 }
 
 func TestInitAccountList(t *testing.T) {
-	if len(*InitAccountList()) == 0 {
+	vtest := *InitAccountList()
+	if len(vtest) == 0 {
 		t.Fatalf("не выполнена инициализация ")
 	}
+	t.Logf("%v", vtest)
 
 }
 
