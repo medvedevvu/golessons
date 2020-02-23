@@ -203,6 +203,8 @@ func (accountsList *AccountsList) Balance(username string) (float32, error) {
 // GetAccounts - сортируем аккаунты
 func (accountsList AccountsList) GetAccounts(sort AccountSortType) AccountsList {
 	outAcc := AccountsList{}
+	var localmutex sync.Mutex
+	localmutex.Lock()
 	keys := make([]string, 0, len(accountsList))
 
 	for k := range accountsList {
@@ -212,6 +214,7 @@ func (accountsList AccountsList) GetAccounts(sort AccountSortType) AccountsList 
 	for _, v := range accountsList {
 		keys1 = append(keys1, float64(v.Balance))
 	}
+	localmutex.Unlock()
 	switch sort {
 	case SortByName:
 		sorting.Strings(keys)

@@ -31,7 +31,6 @@ func TestInitAccountList(t *testing.T) {
 	if len(vtest) == 0 {
 		t.Fatalf("не выполнена инициализация ")
 	}
-	//t.Logf("%v", vtest)
 }
 
 func TestNewAccountsList(t *testing.T) {
@@ -97,5 +96,4 @@ func TestSetBalance(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	t.Logf("%v\n", vtest)
 }

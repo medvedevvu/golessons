@@ -9,52 +9,52 @@ func InitProductCatalog() *ProductsList {
 	lproductList := NewProductsList()
 	err := lproductList.AddProduct("колбаса", Product{Price: 125.23, Type: ProductNormal})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("водка", Product{Price: 400.23, Type: ProductNormal})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 
 	err = lproductList.AddProduct("сыр", Product{Price: 315.14, Type: ProductPremium})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("макароны", Product{Price: 47.14, Type: ProductNormal})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("зубочистка", Product{Price: 0.00, Type: ProductSample})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("вермишель", Product{Price: 11.20, Type: ProductNormal})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("хлеб", Product{Price: 32.10, Type: ProductNormal})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("цветы", Product{Price: 700.10, Type: ProductPremium})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("шампанское", Product{Price: 150.10, Type: ProductNormal})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("шоколад", Product{Price: 478.21, Type: ProductPremium})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("духи", Product{Price: 900.51, Type: ProductPremium})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	err = lproductList.AddProduct("спички", Product{Price: 22.51, Type: ProductNormal})
 	if err != nil {
-		fmt.Printf("%s", err)
+		fmt.Printf("%s\n", err)
 	}
 	return lproductList
 }
@@ -65,9 +65,7 @@ func TestInitProductCatalog(t *testing.T) {
 	if len(*vals) == 0 {
 		t.Fatalf("Инициализация не прошла !")
 	}
-	for idx, item := range *vals {
-		fmt.Printf("%s  %f  %d \n", idx, item.Price, item.Type)
-	}
+	t.Log(*vals)
 }
 
 func TestAddProduct(t *testing.T) {

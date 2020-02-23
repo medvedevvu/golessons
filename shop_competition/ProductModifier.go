@@ -1,9 +1,11 @@
 package shop_competition
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 )
 
 var gproductList *ProductsList
@@ -25,10 +27,13 @@ func GetProductList() *ProductsList {
 //CheckAttrsOfProduct проверка атрибутов товара
 func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 	product Product, operation OperationType) error {
+	//var localmutex sync.Mutex
 	if len(strings.Trim(productName, "")) == 0 {
 		return fmt.Errorf("у продукта нет названия")
 	}
+	//localmutex.Lock() // на момент проверки наличия , заблокируем
 	_, ok := (*productsList)[productName]
+	//localmutex.Unlock() // разблокируем
 	if operation == Add {
 		if ok {
 			return fmt.Errorf("продукт %s уже есть", productName)
@@ -54,12 +59,45 @@ func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 // AddProduct добавляем товар в каталог
 func (productsList *ProductsList) AddProduct(productName string,
 	product Product) error {
-	err := productsList.CheckAttrsOfProduct(productName, product, Add)
-	if err != nil {
-		return fmt.Errorf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
+	timer := time.NewTimer(time.Second)
+
+	mthread := func() chan string {
+		lchan := make(chan string)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			err := productsList.CheckAttrsOfProduct(productName, product, Add)
+			if err != nil {
+				lchan <- fmt.Sprintf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
+				return
+			}
+			time.Sleep(time.Second * 2)
+			(*productsList)[productName] = &product
+			lchan <- ""
+			return
+		}()
+		return lchan
 	}
-	(*productsList)[productName] = &product
-	return nil
+
+	res := mthread()
+
+	//	for {
+	select {
+	case localmess := <-res:
+		if localmess == "" {
+			return nil
+		} else {
+			return errors.New(localmess)
+		}
+	case <-timer.C:
+		_, ok := <-res
+		if ok {
+			close(res)
+		}
+		return errors.New("Превышен интервал ожидания")
+	}
+	//	}
+
 }
 
 // ModifyProduct меняем товар в каталоге
