@@ -65,7 +65,7 @@ func TestInitProductCatalog(t *testing.T) {
 	if len(*vals) == 0 {
 		t.Fatalf("Инициализация не прошла !")
 	}
-	t.Log(*vals)
+	//t.Log(*vals)
 }
 
 func TestAddProduct(t *testing.T) {
