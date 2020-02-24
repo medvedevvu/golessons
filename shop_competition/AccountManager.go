@@ -10,8 +10,16 @@ import (
 )
 
 // NewAccountsList коструктор
-var gaccountsList *AccountsList
-var once sync.Once
+
+var (
+	gaccountsList     *AccountsList
+	once              sync.Once
+	getAccountsMutex  sync.Mutex
+	balanceMutex      sync.Mutex
+	addBalanceMutex   sync.Mutex
+	oldregister1Mutex sync.Mutex
+	registerMutex     sync.Mutex
+)
 
 func NewAccountsList() *AccountsList {
 	once.Do(func() {
@@ -30,7 +38,7 @@ func (accountsList *AccountsList) Register(username string, accounttype AccountT
 	errmsg := make(chan string, 1)
 
 	go func() {
-		var localmutex sync.Mutex
+
 		timer := time.NewTimer(time.Second)
 		go func() {
 			defer close(done)
@@ -38,15 +46,15 @@ func (accountsList *AccountsList) Register(username string, accounttype AccountT
 				errmsg <- fmt.Sprintf("username %s пустое ", username)
 				return
 			}
-			localmutex.Lock()
+			registerMutex.Lock()
 			_, ok := (*accountsList)[username]
 			if ok {
-				localmutex.Unlock()
+				registerMutex.Unlock()
 				errmsg <- fmt.Sprintf("такой пользователь %s уже есть ", username)
 				return
 			}
 			(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
-			localmutex.Unlock()
+			registerMutex.Unlock()
 			errmsg <- ""
 			return
 		}()
@@ -71,22 +79,21 @@ func (accountsList *AccountsList) OLDRegister1(username string, accounttype Acco
 	done := make(chan struct{})
 	errmsg := make(chan string, 1)
 	go func() {
-		var localmutex sync.Mutex
 		defer close(done)
 		func() {
 			if len(strings.Trim(username, "")) == 0 {
 				errmsg <- fmt.Sprintf("username %s пустое ", username)
 				return
 			}
-			localmutex.Lock()
+			oldregister1Mutex.Lock()
 			_, ok := (*accountsList)[username]
 			if ok {
-				localmutex.Unlock()
+				oldregister1Mutex.Unlock()
 				errmsg <- fmt.Sprintf("такой пользователь %s уже есть ", username)
 				return
 			}
 			(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
-			localmutex.Unlock()
+			oldregister1Mutex.Unlock()
 			errmsg <- ""
 			return
 		}()
@@ -120,25 +127,24 @@ func (accountsList *AccountsList) AddBalance(username string,
 	done := make(chan struct{})
 	errmsg := make(chan string, 1)
 
-	var localmutex sync.Mutex
 	timer := time.NewTimer(time.Second)
 
 	go func() {
 		defer close(done)
-		localmutex.Lock()
+		addBalanceMutex.Lock()
 		acc, ok := (*accountsList)[username]
 		if !ok {
-			localmutex.Unlock()
+			addBalanceMutex.Unlock()
 			errmsg <- fmt.Sprintf("Пользователь %s не найден", username)
 			return
 		}
 		if sum <= 0 {
-			localmutex.Unlock()
+			addBalanceMutex.Unlock()
 			errmsg <- fmt.Sprintf("не дoпустимый баланс  %f ", sum)
 			return
 		}
 		acc.Balance += sum
-		localmutex.Unlock()
+		addBalanceMutex.Unlock()
 		errmsg <- ""
 		return
 	}()
@@ -167,21 +173,21 @@ func (accountsList *AccountsList) Balance(username string) (float32, error) {
 
 	done := make(chan struct{})
 	vmsg := make(chan vmsgType, 1)
-
-	var localmutex sync.Mutex
 	timer := time.NewTimer(time.Second)
 
 	go func() {
 		defer close(done)
-		localmutex.Lock()
 		acc, ok := (*accountsList)[username]
-		localmutex.Unlock()
+		accBalance := acc.Balance
+		balanceMutex.Lock()
 		if !ok {
 			vmsg <- vmsgType{balance: 0,
 				errmsg: fmt.Sprintf("Пользователь %s не найден", username)}
+			balanceMutex.Unlock()
 			return
 		}
-		vmsg <- vmsgType{balance: acc.Balance, errmsg: "ok"}
+		vmsg <- vmsgType{balance: accBalance, errmsg: "ok"}
+		balanceMutex.Unlock()
 		return
 	}()
 
@@ -207,8 +213,8 @@ func (accountsList *AccountsList) Balance(username string) (float32, error) {
 // GetAccounts - сортируем аккаунты
 func (accountsList AccountsList) GetAccounts(sort AccountSortType) AccountsList {
 	outAcc := AccountsList{}
-	var localmutex sync.Mutex
-	localmutex.Lock()
+
+	getAccountsMutex.Lock()
 	keys := make([]string, 0, len(accountsList))
 
 	for k := range accountsList {
@@ -218,7 +224,7 @@ func (accountsList AccountsList) GetAccounts(sort AccountSortType) AccountsList 
 	for _, v := range accountsList {
 		keys1 = append(keys1, float64(v.Balance))
 	}
-	localmutex.Unlock()
+	getAccountsMutex.Unlock()
 	switch sort {
 	case SortByName:
 		sorting.Strings(keys)

@@ -8,8 +8,14 @@ import (
 	"time"
 )
 
-var gproductList *ProductsList
-var once3 sync.Once
+var (
+	gproductList             *ProductsList
+	once3                    sync.Once
+	checkAttrsOfProductMutex sync.Mutex
+	addProductMutex          sync.Mutex
+	modifyProductMutex       sync.Mutex
+	removeProductMutex       sync.Mutex
+)
 
 // NewProductsList конструктор
 func NewProductsList() *ProductsList {
@@ -27,13 +33,13 @@ func GetProductList() *ProductsList {
 //CheckAttrsOfProduct проверка атрибутов товара
 func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 	product Product, operation OperationType) error {
-	var localmutex sync.Mutex
+
 	if len(strings.Trim(productName, "")) == 0 {
 		return fmt.Errorf("у продукта нет названия")
 	}
-	localmutex.Lock() // на момент проверки наличия , заблокируем
+	checkAttrsOfProductMutex.Lock() // на момент проверки наличия , заблокируем
 	_, ok := (*productsList)[productName]
-	localmutex.Unlock() // разблокируем
+	checkAttrsOfProductMutex.Unlock() // разблокируем
 	if operation == Add {
 		if ok {
 			return fmt.Errorf("продукт %s уже есть", productName)
@@ -60,7 +66,7 @@ func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 func (productsList *ProductsList) AddProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
-	var localmutex sync.Mutex
+
 	mthread := func() chan string {
 		lchan := make(chan string)
 		done := make(chan struct{})
@@ -71,9 +77,9 @@ func (productsList *ProductsList) AddProduct(productName string,
 				lchan <- fmt.Sprintf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
 				return
 			}
-			localmutex.Lock()
+			addProductMutex.Lock()
 			(*productsList)[productName] = &product
-			localmutex.Unlock()
+			addProductMutex.Unlock()
 			lchan <- ""
 			return
 		}()
@@ -98,7 +104,7 @@ func (productsList *ProductsList) AddProduct(productName string,
 func (productsList *ProductsList) ModifyProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
-	var localmutex sync.Mutex
+
 	mthread := func() chan string {
 		lchan := make(chan string)
 		done := make(chan struct{})
@@ -109,9 +115,9 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 				lchan <- fmt.Sprintf("Изменение : ошибка проверки аттрибутов  товара %s", err)
 				return
 			}
-			localmutex.Lock()
+			modifyProductMutex.Lock()
 			(*productsList)[productName] = &product
-			localmutex.Unlock()
+			modifyProductMutex.Unlock()
 			lchan <- ""
 			return
 		}()
@@ -134,7 +140,7 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 // RemoveProduct удаляем товар из каталога
 func (productsList *ProductsList) RemoveProduct(productName string) error {
 	timer := time.NewTimer(time.Second)
-	var localmutex sync.Mutex
+
 	mthread := func() chan string {
 		lchan := make(chan string)
 		done := make(chan struct{})
@@ -145,9 +151,9 @@ func (productsList *ProductsList) RemoveProduct(productName string) error {
 				lchan <- fmt.Sprintf("Удаление: продукта %s нет в каталоге", productName)
 				return
 			}
-			localmutex.Lock()
+			removeProductMutex.Lock()
 			delete(*productsList, productName)
-			localmutex.Unlock()
+			removeProductMutex.Unlock()
 			lchan <- ""
 			return
 		}()

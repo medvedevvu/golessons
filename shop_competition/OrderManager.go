@@ -7,8 +7,11 @@ import (
 	"time"
 )
 
-var gaccountsOrders *AccountsOrders
-var once2 sync.Once
+var (
+	gaccountsOrders *AccountsOrders
+	once2           sync.Once
+	orderlmutex     sync.Mutex
+)
 
 //NewAccountsOrders конструктор
 func NewAccountsOrders() *AccountsOrders {
@@ -26,7 +29,6 @@ func GetAccountsOrders() *AccountsOrders {
 // PlaceOrder
 func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) error {
 	timer := time.NewTimer(time.Second)
-	var localmutex sync.Mutex
 	mthread := func() chan string {
 		lchan := make(chan string)
 		done := make(chan struct{})
@@ -35,10 +37,11 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 			vaccountsList := GetAccountsList()
 			vproductsList := GetProductList()
 			vboundlesList := GetBundlesList()
-			localmutex.Lock()
+			orderlmutex.Lock()
 			vuser, ok := (*vaccountsList)[username]
 			if !ok {
 				lchan <- fmt.Sprintf(" пользователь %s не регистрирован", username)
+				orderlmutex.Unlock()
 				return
 			}
 			var productPrice float32
@@ -64,14 +67,13 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 					vuser.Balance,
 					order.TotalOrderPrice,
 					vuser.Balance-order.TotalOrderPrice)
-				localmutex.Unlock()
+				orderlmutex.Unlock()
 				return
 			}
-
-			vuser.Balance = vuser.Balance - order.TotalOrderPrice
+			vuser.Balance -= order.TotalOrderPrice
 			// запишем в историю списаний
 			(*accountsOrders)[username] = append((*accountsOrders)[username], order)
-			localmutex.Unlock()
+			orderlmutex.Unlock()
 			lchan <- ""
 			return
 		}()

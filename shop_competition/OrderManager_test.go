@@ -148,6 +148,104 @@ func TestAsyncPlaceOrder(t *testing.T) {
 	wg.Wait()
 }
 
+func TestAsyncSinglePlaceOrder(t *testing.T) {
+	_, _, _, _ = InitEnviroment()
+	vaccountsOrders := GetAccountsOrders()
+	vaccountsList := GetAccountsList()
+
+	order := Order{}
+	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
+	order.BundlesName = []string{"8 марта", "8 марта"}
+
+	var wg sync.WaitGroup
+
+	monyKolabefore := make(chan float32, 1)
+	monyKolaafter := make(chan float32, 1)
+	monyVasiybefore := make(chan float32, 1)
+	monyVasiyafter := make(chan float32, 1)
+
+	//err := errors.New("")
+	wg.Add(6)
+	go func() {
+		defer wg.Done()
+		val, err := vaccountsList.Balance("Kola")
+		monyKolabefore <- val
+		if err != nil {
+			t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, "Kola", val)
+			return
+		}
+		if val <= 0 {
+			t.Fatalf("баланс %f - user %s \n", val, "Kola")
+			return
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		val, err := vaccountsList.Balance("Vasiy")
+		monyVasiybefore <- val
+		if err != nil {
+			t.Fatalf("%s\n ошбка получения баланса - user %s", err, "Vasiy")
+			return
+		}
+		if val <= 0 {
+			t.Fatalf("баланс %f - user %s \n", val, "Vasiy")
+			return
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := vaccountsOrders.PlaceOrder("Vasiy", order)
+		monyVasiyafter <- 0
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := vaccountsOrders.PlaceOrder("Kola", order)
+		monyKolaafter <- 0
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		val, err := vaccountsList.Balance("Kola")
+		if err != nil {
+			t.Fail()
+		}
+		valbefore := <-monyKolabefore
+		<-monyKolaafter
+		if valbefore <= val {
+			t.Fatalf(" before %f after %f - не прошло списание %s \n",
+				valbefore, val, "Kola")
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		val, err := vaccountsList.Balance("Vasiy")
+		if err != nil {
+			t.Fail()
+		}
+		valbefore := <-monyVasiybefore
+		<-monyVasiyafter
+		if valbefore <= val {
+			t.Fatalf(" before %f after %f - не прошло списание %s \n",
+				valbefore, val, "Vasiy")
+		}
+		return
+	}()
+	wg.Wait()
+}
+
 func TestPlaceOrder(t *testing.T) {
 	_, _, _, _ = InitEnviroment()
 	vaccountsOrders := GetAccountsOrders()
