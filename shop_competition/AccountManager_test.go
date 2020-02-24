@@ -2,6 +2,7 @@ package shop_competition
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 )
 
@@ -58,12 +59,19 @@ func TestAddBalance(t *testing.T) {
 	names := map[string]float32{"Kola": 325.12,
 		"Vasiy": 900.21, "Dram": 10, "Vortis": 23}
 
+	var wg sync.WaitGroup
+	wg.Add(4)
 	for key, vals := range names {
-		err := vtest.AddBalance(key, vals)
-		if err != nil {
-			t.Error(err)
-		}
+		go func() {
+			defer wg.Done()
+			err := vtest.AddBalance(key, vals)
+			if err != nil {
+				t.Error(err)
+			}
+		}()
 	}
+
+	wg.Wait()
 
 	v, err := vtest.Balance("Vasiy")
 	if err != nil {
@@ -78,6 +86,7 @@ func TestAddBalance(t *testing.T) {
 }
 
 func TestSetBalance(t *testing.T) {
+	var wg sync.WaitGroup
 	vtest := NewAccountsList()
 	vtest.Register("Ada", AccountPremium)
 	vtest.Register("Vasiy", AccountPremium)
@@ -90,10 +99,16 @@ func TestSetBalance(t *testing.T) {
 		"Vasiy": 2222.21, "Boris": 3333, "Gladis": 5555,
 		"Fargus": 4444, "Wilams": 555.32}
 
+	wg.Add(6)
+
 	for key, vals := range names {
-		err := vtest.AddBalance(key, vals)
-		if err != nil {
-			t.Fatal(err)
-		}
+		go func() {
+			defer wg.Done()
+			err := vtest.AddBalance(key, vals)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}()
 	}
+	wg.Wait()
 }

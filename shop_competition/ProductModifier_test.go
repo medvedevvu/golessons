@@ -2,6 +2,7 @@ package shop_competition
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 )
 
@@ -70,35 +71,105 @@ func TestInitProductCatalog(t *testing.T) {
 
 func TestAddProduct(t *testing.T) {
 	vproductList := InitProductCatalog()
-	err := vproductList.AddProduct("спички", Product{Price: 10.10, Type: ProductSample})
-	if err == nil {
-		t.Fatalf("Добавлен пробник с не нулевой стоимостью ")
-	}
-	err = vproductList.AddProduct("зажигалка", Product{Price: -100.10, Type: ProductPremium})
-	if err == nil {
-		t.Fatalf(" добавлен продукт с отрицательной стоимостью ")
-	}
-	err = vproductList.AddProduct("зажигалка", Product{Price: 0.0, Type: ProductPremium})
-	if err == nil {
-		t.Fatalf(" добавлен продукт с нулевой стоимостью ")
-	}
-	err = vproductList.AddProduct("сыр", Product{Price: 315.14, Type: ProductPremium})
-	if err == nil {
-		t.Fatalf(" добавлен одноименный продукт ")
-	}
 
-	err = vproductList.ModifyProduct("сыр", Product{Price: 0, Type: ProductPremium})
-	if err == nil {
-		t.Fatalf(" проставлена нулевая сумма не у пробника  ")
-	}
+	var wg sync.WaitGroup
+	wg.Add(5)
 
-	err = vproductList.ModifyProduct("сыр", Product{Price: -12.23, Type: ProductPremium})
-	if err == nil {
-		t.Fatalf(" проставлена отрицательная сумма не у пробника  ")
-	}
-	err = vproductList.ModifyProduct("зубочистка", Product{Price: 11.10, Type: ProductSample})
-	if err == nil {
-		t.Fatalf(" проставлена положительная сумма у пробника  ")
-	}
+	go func() {
+		defer wg.Done()
+
+		err := vproductList.AddProduct("спички", Product{Price: 10.10, Type: ProductSample})
+		if err == nil {
+			t.Fatalf("Добавлен пробник с не нулевой стоимостью ")
+		}
+
+	}()
+	go func() {
+		defer wg.Done()
+		err := vproductList.AddProduct("зажигалка", Product{Price: -100.10, Type: ProductPremium})
+		if err == nil {
+			t.Fatalf(" добавлен продукт с отрицательной стоимостью ")
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		err := vproductList.AddProduct("зажигалка", Product{Price: 0.0, Type: ProductPremium})
+		if err == nil {
+			t.Fatalf(" добавлен продукт с нулевой стоимостью ")
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		err := vproductList.AddProduct("сыр", Product{Price: 315.14, Type: ProductPremium})
+		if err == nil {
+			t.Fatalf(" добавлен одноименный продукт ")
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		err := vproductList.AddProduct("куркума", Product{Price: 215.14, Type: ProductPremium})
+		if err == nil {
+			t.Fatalf(" не добавлен нормальный продукт ")
+		}
+	}()
+	wg.Wait()
+
+}
+
+func TestModifyProduct(t *testing.T) {
+	vproductList := InitProductCatalog()
+	var wg sync.WaitGroup
+
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		err := vproductList.ModifyProduct("сыр", Product{Price: 0, Type: ProductPremium})
+		if err == nil {
+			t.Fatalf(" проставлена нулевая сумма не у пробника  ")
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		err := vproductList.ModifyProduct("сыр", Product{Price: -12.23, Type: ProductPremium})
+		if err == nil {
+			t.Fatalf(" проставлена отрицательная сумма не у пробника  ")
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		err := vproductList.ModifyProduct("зубочистка", Product{Price: 11.10, Type: ProductSample})
+		if err == nil {
+			t.Fatalf(" проставлена положительная сумма у пробника  ")
+		}
+	}()
+	wg.Wait()
+
+}
+
+func TestRemoveProduct(t *testing.T) {
+	vproductList := InitProductCatalog()
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		err := vproductList.RemoveProduct("шоколад")
+		err = vproductList.RemoveProduct("шампанское")
+		if err != nil {
+			t.Fatalf(" ошибка удаления ")
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := vproductList.RemoveProduct("шомпанское")
+		if err != nil {
+			t.Fatalf(" %s ", err)
+		}
+	}()
+
+	wg.Wait()
 
 }

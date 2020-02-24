@@ -191,11 +191,15 @@ func (accountsList *AccountsList) Balance(username string) (float32, error) {
 		vmsg <- vmsgType{balance: 0, errmsg: "Превышен интервал ожидания"}
 	}
 	for errm := range vmsg {
-		if errm.errmsg != "" {
+		switch {
+		case errm.errmsg != "" && errm.errmsg != "ok":
 			return errm.balance, errors.New(errm.errmsg)
-		} else {
+		case errm.errmsg == "ok":
+			return errm.balance, nil
+		default:
 			return 0, nil
 		}
+
 	}
 	return 0, nil
 }

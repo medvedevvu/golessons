@@ -60,7 +60,7 @@ func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 func (productsList *ProductsList) AddProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
-
+	var localmutex sync.Mutex
 	mthread := func() chan string {
 		lchan := make(chan string)
 		done := make(chan struct{})
@@ -71,7 +71,9 @@ func (productsList *ProductsList) AddProduct(productName string,
 				lchan <- fmt.Sprintf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
 				return
 			}
+			localmutex.Lock()
 			(*productsList)[productName] = &product
+			localmutex.Unlock()
 			lchan <- ""
 			return
 		}()
@@ -96,6 +98,7 @@ func (productsList *ProductsList) AddProduct(productName string,
 func (productsList *ProductsList) ModifyProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
+	var localmutex sync.Mutex
 	mthread := func() chan string {
 		lchan := make(chan string)
 		done := make(chan struct{})
@@ -106,7 +109,9 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 				lchan <- fmt.Sprintf("Изменение : ошибка проверки аттрибутов  товара %s", err)
 				return
 			}
+			localmutex.Lock()
 			(*productsList)[productName] = &product
+			localmutex.Unlock()
 			lchan <- ""
 			return
 		}()
@@ -128,10 +133,35 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 
 // RemoveProduct удаляем товар из каталога
 func (productsList *ProductsList) RemoveProduct(productName string) error {
-	_, ok := (*productsList)[productName]
-	if !ok {
-		return fmt.Errorf("Удаление: продукта %s нет в каталоге", productName)
+	timer := time.NewTimer(time.Second)
+	var localmutex sync.Mutex
+	mthread := func() chan string {
+		lchan := make(chan string)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			_, ok := (*productsList)[productName]
+			if !ok {
+				lchan <- fmt.Sprintf("Удаление: продукта %s нет в каталоге", productName)
+				return
+			}
+			localmutex.Lock()
+			delete(*productsList, productName)
+			localmutex.Unlock()
+			lchan <- ""
+			return
+		}()
+		return lchan
 	}
-	delete(*productsList, productName)
-	return nil
+	res := mthread()
+	select {
+	case localmess := <-res:
+		if localmess == "" {
+			return nil
+		} else {
+			return errors.New(localmess)
+		}
+	case <-timer.C:
+		return errors.New("Превышен интервал ожидания")
+	}
 }

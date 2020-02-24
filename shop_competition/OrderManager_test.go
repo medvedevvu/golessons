@@ -1,6 +1,10 @@
 package shop_competition
 
-import "testing"
+import (
+	"errors"
+	"sync"
+	"testing"
+)
 
 func InitEnviroment() (*AccountsList, *ProductsList, *BundlesList, *AccountsOrders) {
 	testAccList := NewAccountsList()
@@ -10,7 +14,7 @@ func InitEnviroment() (*AccountsList, *ProductsList, *BundlesList, *AccountsOrde
 	testAccList.Register("Vortis", AccountPremium)
 
 	names := map[string]float32{"Kola": 2750.12,
-		"Vasiy": 1930.21, "Dram": 5000, "Vortis": 2136.67}
+		"Vasiy": 19930.21, "Dram": 5000, "Vortis": 2136.67}
 
 	for key, vals := range names {
 		_ = testAccList.AddBalance(key, vals)
@@ -40,6 +44,93 @@ func InitEnviroment() (*AccountsList, *ProductsList, *BundlesList, *AccountsOrde
 	return testAccList, lproductList, vbundleList, vaccountsOrders
 }
 
+func TestAsyncPlaceOrder(t *testing.T) {
+	_, _, _, _ = InitEnviroment()
+	vaccountsOrders := GetAccountsOrders()
+	vaccountsList := GetAccountsList()
+
+	order := Order{}
+	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
+	order.BundlesName = []string{"8 марта", "8 марта"}
+
+	var wg sync.WaitGroup
+	wg.Add(6)
+
+	var (
+		monyKolabefore  float32
+		monyKolaafter   float32
+		monyVasiybefore float32
+		monyVasiyafter  float32
+	)
+	err := errors.New("")
+	go func() {
+		defer wg.Done()
+		monyKolabefore, err = vaccountsList.Balance("Kola")
+		if err != nil {
+			t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, "Kola", monyKolabefore)
+			return
+		}
+		if monyKolabefore <= 0 {
+			t.Fatalf("баланс %f - user %s \n", monyKolabefore, "Kola")
+			return
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		monyVasiybefore, err = vaccountsList.Balance("Vasiy")
+		if err != nil {
+			t.Fatalf("%s\n ошбка получения баланса - user %s", err, "Vasiy")
+			return
+		}
+		if monyVasiybefore <= 0 {
+			t.Fatalf("баланс %f - user %s \n", monyVasiybefore, "Vasiy")
+			return
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		err = vaccountsOrders.PlaceOrder("Vasiy", order)
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		err = vaccountsOrders.PlaceOrder("Kola", order)
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		monyKolaafter, err = vaccountsList.Balance("Kola")
+		if err != nil {
+			t.Fail()
+		}
+		if monyKolabefore <= monyKolaafter {
+			t.Fatalf(" before %f after %f - не прошло списание %s \n",
+				monyKolabefore, monyKolaafter, "Kola")
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		monyVasiyafter, err = vaccountsList.Balance("Vasiy")
+		if err != nil {
+			t.Fail()
+		}
+		if monyVasiybefore <= monyVasiyafter {
+			t.Fatalf(" before %f after %f - не прошло списание %s \n",
+				monyVasiybefore, monyVasiyafter, "Vasiy")
+		}
+	}()
+	wg.Wait()
+}
+
 func TestPlaceOrder(t *testing.T) {
 	_, _, _, _ = InitEnviroment()
 	vaccountsOrders := GetAccountsOrders()
@@ -49,23 +140,71 @@ func TestPlaceOrder(t *testing.T) {
 	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
 	order.BundlesName = []string{"8 марта", "8 марта"}
 
-	money, err := vaccountsList.Balance("Kola")
-	if err != nil {
-		t.Fatalf("%s\n ошбка получения баланса ", err)
-	}
-	if money <= 0 {
-		t.Fatalf("баланс %f  \n", money)
-	}
+	var (
+		monyKolabefore  float32
+		monyKolaafter   float32
+		monyVasiybefore float32
+		monyVasiyafter  float32
+	)
+	err := errors.New("")
+	func() {
+		monyKolabefore, err = vaccountsList.Balance("Kola")
+		if err != nil {
+			t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, "Kola", monyKolabefore)
+			return
+		}
+		if monyKolabefore <= 0 {
+			t.Fatalf("баланс %f - user %s \n", monyKolabefore, "Kola")
+			return
+		}
+	}()
 
-	err = vaccountsOrders.PlaceOrder("Kola", order)
-	if err != nil {
-		t.Fatalf("%s\n", err)
-	}
+	func() {
+		monyVasiybefore, err = vaccountsList.Balance("Vasiy")
+		if err != nil {
+			t.Fatalf("%s\n ошбка получения баланса - user %s", err, "Vasiy")
+			return
+		}
+		if monyVasiybefore <= 0 {
+			t.Fatalf("баланс %f - user %s \n", monyVasiybefore, "Vasiy")
+			return
+		}
+	}()
 
-	money1, err := vaccountsList.Balance("Kola")
-	if money <= money1 {
-		t.Fatalf(" before %f after %f - не прошло списание ", money, money1)
-	}
+	func() {
+		err = vaccountsOrders.PlaceOrder("Vasiy", order)
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+	}()
 
-	t.Logf("---> %v ", vaccountsOrders)
+	func() {
+		err = vaccountsOrders.PlaceOrder("Kola", order)
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+	}()
+
+	func() {
+		monyKolaafter, err = vaccountsList.Balance("Kola")
+		if err != nil {
+			t.Fail()
+		}
+		if monyKolabefore <= monyKolaafter {
+			t.Fatalf(" before %f after %f - не прошло списание %s \n",
+				monyKolabefore, monyKolaafter, "Kola")
+		}
+	}()
+
+	func() {
+		monyVasiyafter, err = vaccountsList.Balance("Vasiy")
+		if err != nil {
+			t.Fail()
+		}
+		if monyVasiybefore <= monyVasiyafter {
+			t.Fatalf(" before %f after %f - не прошло списание %s \n",
+				monyVasiybefore, monyVasiyafter, "Vasiy")
+		}
+	}()
+
 }

@@ -1,8 +1,10 @@
 package shop_competition
 
 import (
+	"errors"
 	"fmt"
 	"sync"
+	"time"
 )
 
 var gaccountsOrders *AccountsOrders
@@ -23,42 +25,69 @@ func GetAccountsOrders() *AccountsOrders {
 
 // PlaceOrder
 func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) error {
-	vaccountsList := GetAccountsList()
-	vproductsList := GetProductList()
-	vboundlesList := GetBundlesList()
-	vuser, ok := (*vaccountsList)[username]
-	if !ok {
-		return fmt.Errorf(" пользователь %s не регистрирован", username)
+	timer := time.NewTimer(time.Second)
+	var localmutex sync.Mutex
+	mthread := func() chan string {
+		lchan := make(chan string)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			vaccountsList := GetAccountsList()
+			vproductsList := GetProductList()
+			vboundlesList := GetBundlesList()
+			localmutex.Lock()
+			vuser, ok := (*vaccountsList)[username]
+			if !ok {
+				lchan <- fmt.Sprintf(" пользователь %s не регистрирован", username)
+				return
+			}
+			var productPrice float32
+			for _, productName := range order.ProductsName {
+				vdiscount := getDiscount(vuser.AccountType, (*vproductsList)[productName].Type)
+				productPrice += (*vproductsList)[productName].Price * vdiscount
+			}
+			var bundlePrice float32
+			for _, bundleName := range order.BundlesName {
+				vboundl := (*vboundlesList)[bundleName]
+				for _, productName := range vboundl.ProductsName {
+					bundlePrice += (*vproductsList)[productName].Price * vboundl.Discount
+				}
+			}
+
+			order.BundlesPrice = bundlePrice
+			order.ProductsPrice = productPrice
+			order.TotalOrderPrice = bundlePrice + productPrice
+
+			if (vuser.Balance - order.TotalOrderPrice) <= 0 {
+				lchan <- fmt.Sprintf(" %s : остаток %f - списание %f = %f - мало на счету",
+					username,
+					vuser.Balance,
+					order.TotalOrderPrice,
+					vuser.Balance-order.TotalOrderPrice)
+				localmutex.Unlock()
+				return
+			}
+
+			vuser.Balance = vuser.Balance - order.TotalOrderPrice
+			// запишем в историю списаний
+			(*accountsOrders)[username] = append((*accountsOrders)[username], order)
+			localmutex.Unlock()
+			lchan <- ""
+			return
+		}()
+		return lchan
 	}
-	var productPrice float32
-	for _, productName := range order.ProductsName {
-		vdiscount := getDiscount(vuser.AccountType, (*vproductsList)[productName].Type)
-		productPrice += (*vproductsList)[productName].Price * vdiscount
-	}
-	var bundlePrice float32
-	for _, bundleName := range order.BundlesName {
-		vboundl := (*vboundlesList)[bundleName]
-		for _, productName := range vboundl.ProductsName {
-			bundlePrice += (*vproductsList)[productName].Price * vboundl.Discount
+	res := mthread()
+	select {
+	case localmess := <-res:
+		if localmess == "" {
+			return nil
+		} else {
+			return errors.New(localmess)
 		}
+	case <-timer.C:
+		return errors.New("Превышен интервал ожидания")
 	}
-
-	order.BundlesPrice = bundlePrice
-	order.ProductsPrice = productPrice
-	order.TotalOrderPrice = bundlePrice + productPrice
-
-	if (vuser.Balance - order.TotalOrderPrice) <= 0 {
-		return fmt.Errorf(" %s : остаток %f - списание %f = %f - мало на счету",
-			username,
-			vuser.Balance,
-			order.TotalOrderPrice,
-			vuser.Balance-order.TotalOrderPrice)
-	}
-	vuser.Balance = vuser.Balance - order.TotalOrderPrice
-	// запишем в историю списаний
-	(*accountsOrders)[username] = append((*accountsOrders)[username], order)
-	return nil
-
 }
 
 func getDiscount(accountType AccountType, productType ProductType) (discount float32) {
