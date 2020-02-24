@@ -54,79 +54,96 @@ func TestAsyncPlaceOrder(t *testing.T) {
 	order.BundlesName = []string{"8 марта", "8 марта"}
 
 	var wg sync.WaitGroup
-	wg.Add(6)
 
-	var (
-		monyKolabefore  float32
-		monyKolaafter   float32
-		monyVasiybefore float32
-		monyVasiyafter  float32
-	)
-	err := errors.New("")
+	monyKolabefore := make(chan float32, 1)
+	monyKolaafter := make(chan float32, 1)
+	monyVasiybefore := make(chan float32, 1)
+	monyVasiyafter := make(chan float32, 1)
+
+	//err := errors.New("")
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		monyKolabefore, err = vaccountsList.Balance("Kola")
+		val, err := vaccountsList.Balance("Kola")
+		monyKolabefore <- val
 		if err != nil {
-			t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, "Kola", monyKolabefore)
+			t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, "Kola", val)
 			return
 		}
-		if monyKolabefore <= 0 {
-			t.Fatalf("баланс %f - user %s \n", monyKolabefore, "Kola")
+		if val <= 0 {
+			t.Fatalf("баланс %f - user %s \n", val, "Kola")
 			return
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		monyVasiybefore, err = vaccountsList.Balance("Vasiy")
+		val, err := vaccountsList.Balance("Vasiy")
+		monyVasiybefore <- val
 		if err != nil {
 			t.Fatalf("%s\n ошбка получения баланса - user %s", err, "Vasiy")
 			return
 		}
-		if monyVasiybefore <= 0 {
-			t.Fatalf("баланс %f - user %s \n", monyVasiybefore, "Vasiy")
+		if val <= 0 {
+			t.Fatalf("баланс %f - user %s \n", val, "Vasiy")
 			return
 		}
 	}()
 
+	wg.Wait()
+
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		err = vaccountsOrders.PlaceOrder("Vasiy", order)
+		err := vaccountsOrders.PlaceOrder("Vasiy", order)
+		monyVasiyafter <- 0
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
+		return
 	}()
 
 	go func() {
 		defer wg.Done()
-		err = vaccountsOrders.PlaceOrder("Kola", order)
+		err := vaccountsOrders.PlaceOrder("Kola", order)
+		monyKolaafter <- 0
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
+		return
+	}()
+
+	wg.Wait()
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		val, err := vaccountsList.Balance("Kola")
+		if err != nil {
+			t.Fail()
+		}
+		valbefore := <-monyKolabefore
+		<-monyKolaafter
+		if valbefore <= val {
+			t.Fatalf(" before %f after %f - не прошло списание %s \n",
+				valbefore, val, "Kola")
+		}
+		return
 	}()
 
 	go func() {
 		defer wg.Done()
-		monyKolaafter, err = vaccountsList.Balance("Kola")
+		val, err := vaccountsList.Balance("Vasiy")
 		if err != nil {
 			t.Fail()
 		}
-		if monyKolabefore <= monyKolaafter {
+		valbefore := <-monyVasiybefore
+		<-monyVasiyafter
+		if valbefore <= val {
 			t.Fatalf(" before %f after %f - не прошло списание %s \n",
-				monyKolabefore, monyKolaafter, "Kola")
+				valbefore, val, "Vasiy")
 		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		monyVasiyafter, err = vaccountsList.Balance("Vasiy")
-		if err != nil {
-			t.Fail()
-		}
-		if monyVasiybefore <= monyVasiyafter {
-			t.Fatalf(" before %f after %f - не прошло списание %s \n",
-				monyVasiybefore, monyVasiyafter, "Vasiy")
-		}
+		return
 	}()
 	wg.Wait()
 }
@@ -176,6 +193,7 @@ func TestPlaceOrder(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
+		return
 	}()
 
 	func() {
@@ -183,6 +201,7 @@ func TestPlaceOrder(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
+		return
 	}()
 
 	func() {
@@ -205,6 +224,7 @@ func TestPlaceOrder(t *testing.T) {
 			t.Fatalf(" before %f after %f - не прошло списание %s \n",
 				monyVasiybefore, monyVasiyafter, "Vasiy")
 		}
+		return
 	}()
 
 }
