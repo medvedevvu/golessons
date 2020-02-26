@@ -10,7 +10,6 @@ import (
 var (
 	gaccountsOrders *AccountsOrders
 	once2           sync.Once
-	orderlmutex     sync.Mutex
 )
 
 //NewAccountsOrders конструктор
@@ -37,11 +36,11 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 			vaccountsList := GetAccountsList()
 			vproductsList := GetProductList()
 			vboundlesList := GetBundlesList()
-			orderlmutex.Lock()
+			globalMutex.Lock()
 			vuser, ok := (*vaccountsList)[username]
 			if !ok {
 				lchan <- fmt.Sprintf(" пользователь %s не регистрирован", username)
-				orderlmutex.Unlock()
+				globalMutex.Unlock()
 				return
 			}
 			var productPrice float32
@@ -67,13 +66,13 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 					vuser.Balance,
 					order.TotalOrderPrice,
 					vuser.Balance-order.TotalOrderPrice)
-				orderlmutex.Unlock()
+				globalMutex.Unlock()
 				return
 			}
 			vuser.Balance -= order.TotalOrderPrice
 			// запишем в историю списаний
 			(*accountsOrders)[username] = append((*accountsOrders)[username], order)
-			orderlmutex.Unlock()
+			globalMutex.Unlock()
 			lchan <- ""
 			return
 		}()

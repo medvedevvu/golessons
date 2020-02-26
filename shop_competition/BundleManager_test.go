@@ -2,6 +2,7 @@ package shop_competition
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 )
 
@@ -30,21 +31,63 @@ func TestInitBundles(t *testing.T) {
 	}
 }
 
+func TestRemoveBoundle(t *testing.T) {
+	lbundleList := InitBundles()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		err := lbundleList.RemoveBundle("XXXX")
+		if err == nil {
+			t.Fatalf(" %s \n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := lbundleList.RemoveBundle("Новый год")
+		if err != nil {
+			t.Fatalf(" %s \n", err)
+		}
+		return
+	}()
+
+	wg.Wait()
+}
 func TestAddBoundle(t *testing.T) {
 	lbundleList := InitBundles()
 
-	err := lbundleList.AddBundle("Новый год", "шампанское", 0.4, "сыр", "колбаса", "шоколад")
-	if err == nil {
-		t.Fatalf("добавили одноименный комплект")
-	}
-	err = lbundleList.AddBundle("Мелочи", "зубочистка", 0.1, "спички", "вермишель")
-	if err == nil {
-		t.Fatalf("добавили комплект где основа - пробник")
-	}
+	var wg sync.WaitGroup
 
-	err = lbundleList.AddBundle("Мелочи", "вермишель", 0.1, "зубочистка", "зубочистка")
-	if err == nil {
-		t.Fatalf("добавили комплект где одни пробники %v", *lbundleList)
-	}
+	wg.Add(3)
 
+	go func() {
+		defer wg.Done()
+		err := lbundleList.AddBundle("Новый год", "шампанское", 0.4, "сыр", "колбаса", "шоколад")
+		if err == nil {
+			t.Fatalf("добавили одноименный комплект")
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := lbundleList.AddBundle("Мелочи", "зубочистка", 0.1, "спички", "вермишель")
+		if err == nil {
+			t.Fatalf("добавили комплект где основа - пробник")
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := lbundleList.AddBundle("Мелочи", "вермишель", 0.1, "зубочистка", "зубочистка")
+		if err == nil {
+			t.Fatalf("добавили комплект где одни пробники %v", *lbundleList)
+		}
+		return
+	}()
+
+	wg.Wait()
 }

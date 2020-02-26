@@ -28,32 +28,55 @@ func InitAccountList() *AccountsList {
 }
 
 func TestInitAccountList(t *testing.T) {
-	vtest := *InitAccountList()
-	if len(vtest) == 0 {
+	vtest := InitAccountList()
+	if len(*vtest) == 0 {
 		t.Fatalf("не выполнена инициализация ")
 	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_, ok := (*vtest)["Dram"]
+		if !ok {
+			t.Fatalf("Init fail with user %s", "Dram")
+		}
+	}()
+	wg.Wait()
 }
-
-func TestNewAccountsList(t *testing.T) {
+func Test2WiceRegisterAccountsList(t *testing.T) {
 	vtest := InitAccountList()
-	_, ok := (*vtest)["Dram"]
-	if !ok {
-		t.Fatalf("Init fail with user %s", "Dram")
-	}
-	err := vtest.Register("Boris", AccountPremium)
-	if err != nil {
-		t.Fatalf("Fail with register user %s", "Boris")
-	}
-	err = vtest.Register("Boris", AccountPremium)
-	if err == nil {
-		t.Fatalf("Fail with register twice user %s", "Boris")
-	}
-	err = vtest.Register("", AccountPremium)
-	if err == nil {
-		t.Fatalf("Fail with register empty name user %s", "Boris")
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		err := vtest.Register("Vortis", AccountPremium)
+		if err == nil {
+			t.Fatalf("Fail with register user %s", "Vortis")
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		err := vtest.Register("Vortis", AccountPremium)
+		if err == nil {
+			t.Fatalf("Fail with register twice user %s", "Vortis")
+		}
+	}()
+	wg.Wait()
 }
 
+func TestRegisterEmptyNameAccountsList(t *testing.T) {
+	vtest := InitAccountList()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := vtest.Register("", AccountPremium)
+		if err == nil {
+			t.Fatal("Fail with register empty name user ")
+		}
+	}()
+	wg.Wait()
+}
 func TestAddBalance(t *testing.T) {
 	vtest := InitAccountList()
 	names := map[string]float32{"Kola": 325.12,
@@ -62,6 +85,7 @@ func TestAddBalance(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(4)
 	for key, vals := range names {
+		key, vals := key, vals
 		go func() {
 			defer wg.Done()
 			err := vtest.AddBalance(key, vals)
@@ -73,16 +97,20 @@ func TestAddBalance(t *testing.T) {
 
 	wg.Wait()
 
-	v, err := vtest.Balance("Vasiy")
-	if err != nil {
-		if fmt.Sprintf("%s", err) != "ok" {
-			t.Fatal(err)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		v, err := vtest.Balance("Vasiy")
+		if err != nil {
+			if fmt.Sprintf("%s", err) != "ok" {
+				t.Fatal(err)
+			}
 		}
-	}
-	if v != (*vtest)["Vasiy"].Balance {
-		t.Fatalf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
-	}
-
+		if v != (*vtest)["Vasiy"].Balance {
+			t.Fatalf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
+		}
+	}()
+	wg.Wait()
 }
 
 func TestSetBalance(t *testing.T) {
@@ -102,13 +130,29 @@ func TestSetBalance(t *testing.T) {
 	wg.Add(6)
 
 	for key, vals := range names {
-		go func() {
+		go func(key string, vals float32) {
 			defer wg.Done()
 			err := vtest.AddBalance(key, vals)
 			if err != nil {
 				t.Fatal(err)
 			}
-		}()
+		}(key, vals)
 	}
 	wg.Wait()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		v, err := vtest.Balance("Vasiy")
+		if err != nil {
+			if fmt.Sprintf("%s", err) != "ok" {
+				t.Fatal(err)
+			}
+		}
+		if v != (*vtest)["Vasiy"].Balance {
+			t.Fatalf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
+		}
+	}()
+	wg.Wait()
+
 }

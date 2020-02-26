@@ -9,12 +9,9 @@ import (
 )
 
 var (
-	gproductList             *ProductsList
-	once3                    sync.Once
-	checkAttrsOfProductMutex sync.Mutex
-	addProductMutex          sync.Mutex
-	modifyProductMutex       sync.Mutex
-	removeProductMutex       sync.Mutex
+	gproductList *ProductsList
+	once3        sync.Once
+	globalMutex  sync.Mutex
 )
 
 // NewProductsList конструктор
@@ -37,9 +34,9 @@ func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 	if len(strings.Trim(productName, "")) == 0 {
 		return fmt.Errorf("у продукта нет названия")
 	}
-	checkAttrsOfProductMutex.Lock() // на момент проверки наличия , заблокируем
+	globalMutex.Lock() // на момент проверки наличия , заблокируем
 	_, ok := (*productsList)[productName]
-	checkAttrsOfProductMutex.Unlock() // разблокируем
+	globalMutex.Unlock() // разблокируем
 	if operation == Add {
 		if ok {
 			return fmt.Errorf("продукт %s уже есть", productName)
@@ -77,9 +74,9 @@ func (productsList *ProductsList) AddProduct(productName string,
 				lchan <- fmt.Sprintf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
 				return
 			}
-			addProductMutex.Lock()
+			globalMutex.Lock()
 			(*productsList)[productName] = &product
-			addProductMutex.Unlock()
+			globalMutex.Unlock()
 			lchan <- ""
 			return
 		}()
@@ -115,9 +112,9 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 				lchan <- fmt.Sprintf("Изменение : ошибка проверки аттрибутов  товара %s", err)
 				return
 			}
-			modifyProductMutex.Lock()
+			globalMutex.Lock()
 			(*productsList)[productName] = &product
-			modifyProductMutex.Unlock()
+			globalMutex.Unlock()
 			lchan <- ""
 			return
 		}()
@@ -151,9 +148,9 @@ func (productsList *ProductsList) RemoveProduct(productName string) error {
 				lchan <- fmt.Sprintf("Удаление: продукта %s нет в каталоге", productName)
 				return
 			}
-			removeProductMutex.Lock()
+			globalMutex.Lock()
 			delete(*productsList, productName)
-			removeProductMutex.Unlock()
+			globalMutex.Unlock()
 			lchan <- ""
 			return
 		}()

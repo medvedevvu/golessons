@@ -12,13 +12,8 @@ import (
 // NewAccountsList коструктор
 
 var (
-	gaccountsList     *AccountsList
-	once              sync.Once
-	getAccountsMutex  sync.Mutex
-	balanceMutex      sync.Mutex
-	addBalanceMutex   sync.Mutex
-	oldregister1Mutex sync.Mutex
-	registerMutex     sync.Mutex
+	gaccountsList *AccountsList
+	once          sync.Once
 )
 
 func NewAccountsList() *AccountsList {
@@ -46,15 +41,15 @@ func (accountsList *AccountsList) Register(username string, accounttype AccountT
 				errmsg <- fmt.Sprintf("username %s пустое ", username)
 				return
 			}
-			registerMutex.Lock()
+			globalMutex.Lock()
 			_, ok := (*accountsList)[username]
 			if ok {
-				registerMutex.Unlock()
+				globalMutex.Unlock()
 				errmsg <- fmt.Sprintf("такой пользователь %s уже есть ", username)
 				return
 			}
 			(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
-			registerMutex.Unlock()
+			globalMutex.Unlock()
 			errmsg <- ""
 			return
 		}()
@@ -85,15 +80,15 @@ func (accountsList *AccountsList) OLDRegister1(username string, accounttype Acco
 				errmsg <- fmt.Sprintf("username %s пустое ", username)
 				return
 			}
-			oldregister1Mutex.Lock()
+			globalMutex.Lock()
 			_, ok := (*accountsList)[username]
 			if ok {
-				oldregister1Mutex.Unlock()
+				globalMutex.Unlock()
 				errmsg <- fmt.Sprintf("такой пользователь %s уже есть ", username)
 				return
 			}
 			(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
-			oldregister1Mutex.Unlock()
+			globalMutex.Unlock()
 			errmsg <- ""
 			return
 		}()
@@ -131,20 +126,20 @@ func (accountsList *AccountsList) AddBalance(username string,
 
 	go func() {
 		defer close(done)
-		addBalanceMutex.Lock()
+		globalMutex.Lock()
 		acc, ok := (*accountsList)[username]
 		if !ok {
-			addBalanceMutex.Unlock()
+			globalMutex.Unlock()
 			errmsg <- fmt.Sprintf("Пользователь %s не найден", username)
 			return
 		}
 		if sum <= 0 {
-			addBalanceMutex.Unlock()
+			globalMutex.Unlock()
 			errmsg <- fmt.Sprintf("не дoпустимый баланс  %f ", sum)
 			return
 		}
 		acc.Balance += sum
-		addBalanceMutex.Unlock()
+		globalMutex.Unlock()
 		errmsg <- ""
 		return
 	}()
@@ -179,15 +174,15 @@ func (accountsList *AccountsList) Balance(username string) (float32, error) {
 		defer close(done)
 		acc, ok := (*accountsList)[username]
 		accBalance := acc.Balance
-		balanceMutex.Lock()
+		globalMutex.Lock()
 		if !ok {
 			vmsg <- vmsgType{balance: 0,
 				errmsg: fmt.Sprintf("Пользователь %s не найден", username)}
-			balanceMutex.Unlock()
+			globalMutex.Unlock()
 			return
 		}
 		vmsg <- vmsgType{balance: accBalance, errmsg: "ok"}
-		balanceMutex.Unlock()
+		globalMutex.Unlock()
 		return
 	}()
 
@@ -214,7 +209,7 @@ func (accountsList *AccountsList) Balance(username string) (float32, error) {
 func (accountsList AccountsList) GetAccounts(sort AccountSortType) AccountsList {
 	outAcc := AccountsList{}
 
-	getAccountsMutex.Lock()
+	globalMutex.Lock()
 	keys := make([]string, 0, len(accountsList))
 
 	for k := range accountsList {
@@ -224,7 +219,7 @@ func (accountsList AccountsList) GetAccounts(sort AccountSortType) AccountsList 
 	for _, v := range accountsList {
 		keys1 = append(keys1, float64(v.Balance))
 	}
-	getAccountsMutex.Unlock()
+	globalMutex.Unlock()
 	switch sort {
 	case SortByName:
 		sorting.Strings(keys)

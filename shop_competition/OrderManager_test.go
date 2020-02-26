@@ -2,6 +2,7 @@ package shop_competition
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 )
@@ -148,7 +149,7 @@ func TestAsyncPlaceOrder(t *testing.T) {
 	wg.Wait()
 }
 
-func TestAsyncSinglePlaceOrder(t *testing.T) {
+func TestCheckPlaceOrder(t *testing.T) {
 	_, _, _, _ = InitEnviroment()
 	vaccountsOrders := GetAccountsOrders()
 	vaccountsList := GetAccountsList()
@@ -159,45 +160,25 @@ func TestAsyncSinglePlaceOrder(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	monyKolabefore := make(chan float32, 1)
-	monyKolaafter := make(chan float32, 1)
-	monyVasiybefore := make(chan float32, 1)
-	monyVasiyafter := make(chan float32, 1)
+	var (
+		monyKolabefore  float32
+		monyVasiybefore float32
+	)
 
-	//err := errors.New("")
-	wg.Add(6)
-	go func() {
-		defer wg.Done()
-		val, err := vaccountsList.Balance("Kola")
-		monyKolabefore <- val
-		if err != nil {
-			t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, "Kola", val)
-			return
-		}
-		if val <= 0 {
-			t.Fatalf("баланс %f - user %s \n", val, "Kola")
-			return
-		}
-	}()
+	monyKolabefore, err := vaccountsList.Balance("Kola")
+	if err != nil {
+		t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, "Kola", monyKolabefore)
+	}
 
-	go func() {
-		defer wg.Done()
-		val, err := vaccountsList.Balance("Vasiy")
-		monyVasiybefore <- val
-		if err != nil {
-			t.Fatalf("%s\n ошбка получения баланса - user %s", err, "Vasiy")
-			return
-		}
-		if val <= 0 {
-			t.Fatalf("баланс %f - user %s \n", val, "Vasiy")
-			return
-		}
-	}()
+	monyVasiybefore, err = vaccountsList.Balance("Vasiy")
+	if err != nil {
+		t.Fatalf("%s\n ошбка получения баланса - user %s", err, "Vasiy")
+	}
 
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		err := vaccountsOrders.PlaceOrder("Vasiy", order)
-		monyVasiyafter <- 0
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
@@ -207,7 +188,6 @@ func TestAsyncSinglePlaceOrder(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		err := vaccountsOrders.PlaceOrder("Kola", order)
-		monyKolaafter <- 0
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
@@ -216,33 +196,36 @@ func TestAsyncSinglePlaceOrder(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		val, err := vaccountsList.Balance("Kola")
+		monyKolaafter, err := vaccountsList.Balance("Kola")
 		if err != nil {
 			t.Fail()
 		}
-		valbefore := <-monyKolabefore
-		<-monyKolaafter
-		if valbefore <= val {
+		if monyKolabefore <= monyKolaafter {
 			t.Fatalf(" before %f after %f - не прошло списание %s \n",
-				valbefore, val, "Kola")
+				monyKolabefore, monyKolaafter, "Kola")
+			return
 		}
+		fmt.Printf(" before %f after %f - прошло списание %s \n",
+			monyKolabefore, monyKolaafter, "Kola")
 		return
 	}()
 
 	go func() {
 		defer wg.Done()
-		val, err := vaccountsList.Balance("Vasiy")
+		monyVasiyafter, err := vaccountsList.Balance("Vasiy")
 		if err != nil {
 			t.Fail()
 		}
-		valbefore := <-monyVasiybefore
-		<-monyVasiyafter
-		if valbefore <= val {
+		if monyVasiybefore <= monyVasiyafter {
 			t.Fatalf(" before %f after %f - не прошло списание %s \n",
-				valbefore, val, "Vasiy")
+				monyVasiybefore, monyVasiyafter, "Vasiy")
+			return
 		}
+		fmt.Printf(" before %f after %f - прошло списание %s \n",
+			monyVasiybefore, monyVasiyafter, "Vasiy")
 		return
 	}()
+
 	wg.Wait()
 }
 
