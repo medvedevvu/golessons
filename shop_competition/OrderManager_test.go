@@ -2,7 +2,6 @@ package shop_competition
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"testing"
 )
@@ -175,7 +174,7 @@ func TestCheckPlaceOrder(t *testing.T) {
 		t.Fatalf("%s\n ошбка получения баланса - user %s", err, "Vasiy")
 	}
 
-	wg.Add(4)
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		err := vaccountsOrders.PlaceOrder("Vasiy", order)
@@ -194,8 +193,9 @@ func TestCheckPlaceOrder(t *testing.T) {
 		return
 	}()
 
-	go func() {
-		defer wg.Done()
+	wg.Wait()
+	func() {
+		//	defer wg.Done()
 		monyKolaafter, err := vaccountsList.Balance("Kola")
 		if err != nil {
 			t.Fail()
@@ -203,15 +203,12 @@ func TestCheckPlaceOrder(t *testing.T) {
 		if monyKolabefore <= monyKolaafter {
 			t.Fatalf(" before %f after %f - не прошло списание %s \n",
 				monyKolabefore, monyKolaafter, "Kola")
-			return
 		}
-		fmt.Printf(" before %f after %f - прошло списание %s \n",
-			monyKolabefore, monyKolaafter, "Kola")
 		return
 	}()
 
-	go func() {
-		defer wg.Done()
+	func() {
+		//	defer wg.Done()
 		monyVasiyafter, err := vaccountsList.Balance("Vasiy")
 		if err != nil {
 			t.Fail()
@@ -221,12 +218,8 @@ func TestCheckPlaceOrder(t *testing.T) {
 				monyVasiybefore, monyVasiyafter, "Vasiy")
 			return
 		}
-		fmt.Printf(" before %f after %f - прошло списание %s \n",
-			monyVasiybefore, monyVasiyafter, "Vasiy")
-		return
 	}()
 
-	wg.Wait()
 }
 
 func TestPlaceOrder(t *testing.T) {
@@ -307,5 +300,57 @@ func TestPlaceOrder(t *testing.T) {
 		}
 		return
 	}()
+
+}
+
+func TestPlaceOrderAndAddBalance(t *testing.T) {
+	_, _, _, _ = InitEnviroment()
+	vaccountsOrders := GetAccountsOrders()
+	vaccountsList := GetAccountsList()
+
+	order := Order{}
+	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
+	order.BundlesName = []string{"8 марта", "8 марта"}
+
+	var wg sync.WaitGroup
+
+	wg.Add(4)
+	go func() {
+		defer wg.Done()
+		err := vaccountsOrders.PlaceOrder("Vasiy", order)
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := vaccountsOrders.PlaceOrder("Kola", order)
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := vaccountsList.AddBalance("Vasiy", 75000)
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := vaccountsList.AddBalance("Kola", 75000)
+		if err != nil {
+			t.Fatalf("%s\n", err)
+		}
+		return
+	}()
+
+	wg.Wait()
 
 }

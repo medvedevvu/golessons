@@ -68,7 +68,9 @@ func (bundlesList *BundlesList) ChangeDiscount(name string, discount float32) er
 			result <- fmt.Errorf("комплект %s не найден в каталоге", name)
 			return
 		}
+		globalMutex.Lock()
 		vtemp.Discount = discount
+		globalMutex.Unlock()
 		result <- nil
 		return
 	}()
@@ -92,15 +94,17 @@ func (bundlesList *BundlesList) AddBundle(name string,
 
 	go func() {
 		defer close(done)
+		globalMutex.Lock()
 		_, ok := (*bundlesList)[name]
+		globalMutex.Unlock()
 		if ok {
 			result <- fmt.Errorf("комплект %s уже есть в каталоге", name)
 			return
 		}
 		globalMutex.Lock()
 		vproductList := GetProductList() // получить каталог товаров
-		globalMutex.Unlock()
 		product, ok := (*vproductList)[main]
+		globalMutex.Unlock()
 		if !ok {
 			result <- fmt.Errorf("товар %s не найден в каталоге товаров", name)
 			return

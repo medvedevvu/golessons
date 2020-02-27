@@ -55,6 +55,66 @@ func TestRemoveBoundle(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestRemoveBoundleAndChangeDiscount(t *testing.T) {
+	lbundleList := InitBundles()
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		err := lbundleList.RemoveBundle("Новый год")
+		if err != nil {
+			t.Fatalf(" %s \n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := lbundleList.ChangeDiscount("Новый год", 0.25)
+		if err != nil {
+			t.Fatalf(" %s \n", err)
+		}
+		return
+	}()
+	wg.Wait()
+}
+
+func TestAddAndRemoveBoundle(t *testing.T) {
+	lbundleList := InitBundles()
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		err := lbundleList.RemoveBundle("Новый год")
+		if err != nil {
+			t.Fatalf(" %s \n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := lbundleList.AddBundle("Новый год", "шампанское", 0.4, "сыр", "колбаса", "шоколад")
+		if err != nil {
+			t.Fatalf(" %s \n", err)
+		}
+		return
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := lbundleList.RemoveBundle("23 февраля")
+		if err != nil {
+			t.Fatalf(" %s \n", err)
+		}
+		return
+	}()
+	wg.Wait()
+}
+
 func TestAddBoundle(t *testing.T) {
 	lbundleList := InitBundles()
 
