@@ -21,7 +21,7 @@ func (mb *Mybyte) Write(record AccountsList) {
 		str[0] = fmt.Sprintf("%s", name)
 		str[1] = fmt.Sprintf("%v", value.AccountType)
 		str[2] = fmt.Sprintf("%.2f", value.Balance)
-		str[3] = "\n"
+		str[3] = " "
 		for i := 0; i < len(str); i++ {
 			*mb = append(*mb, []byte(str[i])...)
 		}
@@ -40,8 +40,8 @@ func ExportAccountsCSV0() []byte {
 	return mb
 }
 
-//ExportAccountsCSV1
-func ExportAccountsCSV1() []byte {
+//ExportAccountsCSV
+func ExportAccountsCSV() []byte {
 	accountList := GetAccountsList()
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
@@ -91,4 +91,17 @@ func ExportProdcuctsCSV() []byte {
 	}
 
 	return buf.Bytes()
+}
+
+//ImportProductsCSV
+func ImportProductsCSV(data []byte) error {
+	r := csv.NewReader(bytes.NewReader(data))
+	records, err := r.ReadAll()
+	if err != nil {
+		panic(err)
+	}
+	for _, record := range records {
+		fmt.Println(record)
+	}
+	return nil
 }

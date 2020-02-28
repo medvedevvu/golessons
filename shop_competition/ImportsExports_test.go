@@ -22,7 +22,7 @@ func TestExportAccountsCSV(_ *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportAccountsCSV1()
+		exp = ExportAccountsCSV()
 		return
 	}()
 	wg.Wait()
@@ -42,4 +42,25 @@ func TestExportProdcuctsCSV(_ *testing.T) {
 	}()
 	wg.Wait()
 	fmt.Printf("%v", exp)
+}
+
+func TestImportProductsCSV(_ *testing.T) {
+	_ = InitProductCatalog()
+	exp := []byte{}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		exp = ExportProdcuctsCSV()
+		return
+	}()
+	wg.Wait()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ImportProductsCSV(exp)
+	}()
+	wg.Wait()
+
 }
