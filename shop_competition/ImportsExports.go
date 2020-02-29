@@ -2,6 +2,7 @@ package shop_competition
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 )
@@ -15,8 +16,9 @@ ExportAccountsCSV() []byte.
 
 //ExportAccountsCSV
 func ExportAccountsCSV() []byte {
+	globalMutex.Lock()
 	accountList := GetAccountsList()
-
+	globalMutex.Unlock()
 	accountListSlice := []map[string]*Account{}
 	for name, elem := range *accountList {
 		accountListSlice = append(
@@ -32,17 +34,30 @@ func ExportAccountsCSV() []byte {
 	defer cancel()
 
 	res := make(chan []byte, 1)
-	done := make(chan struct{}, pages)
+	//done := make(chan struct{}, pages)
+	done := make(chan struct{}, 1)
 	errCh := make(chan error, 1)
 
 	var start, end int
-	for i := 0; i < pages; i++ {
-		start = i * page_size
-		if i == (pages - 1) {
-			end = (i+1)*page_size + last_page_add
-		} else {
-			end = (i+1)*page_size + last_page_add
+	if pages > 0 {
+		for i := 0; i < pages; i++ {
+			start = i * page_size
+			if i == (pages - 1) {
+				end = (i+1)*page_size + last_page_add
+			} else {
+				end = (i+1)*page_size + last_page_add
+			}
+			go func(ctx context.Context) {
+				select {
+				case <-ctx.Done():
+					done <- struct{}{}
+					return
+				default:
+				}
+				ExportAccountsCSVHelper(ctx, accountListSlice[start:end], res, done, errCh)
+			}(ctx)
 		}
+	} else {
 		go func(ctx context.Context) {
 			select {
 			case <-ctx.Done():
@@ -50,12 +65,47 @@ func ExportAccountsCSV() []byte {
 				return
 			default:
 			}
-			err := ExportAccountsCSVHelper(ctx, accountListSlice[start:end], res, done, errCh)
-			if err != nil {
-				fmt.Println(err)
-			}
+			ExportAccountsCSVHelper(ctx, accountListSlice[0:last_page_add], res, done, errCh)
 		}(ctx)
 	}
 
-	return nil
+	errFlag := 0
+	errMsg := errors.New("")
+Loop:
+	for {
+		select {
+		case <-done:
+			fmt.Println("DONE")
+			errFlag = 2
+			break Loop
+		case <-res:
+			fmt.Println("RES")
+			break Loop
+		case <-errCh:
+			errMsg = <-errCh
+			errFlag = 1
+			fmt.Println("ERROR")
+			break Loop
+		}
+	}
+	result := []byte{}
+
+	switch errFlag {
+	case 0: // все отработало и в  res-ax все готово
+		fmt.Println("RES_1")
+		//cancel()
+		fmt.Printf("%d   %d \n", cap(res), len(res))
+		temp := <-res
+		result = append(result, temp...)
+	case 1: // прочитаем ошибку
+		fmt.Println("errMsg ")
+		fmt.Println(errMsg)
+	case 2:
+		fmt.Println("Done")
+	}
+
+	//	for _ = range done {
+	//	}
+
+	return result
 }
