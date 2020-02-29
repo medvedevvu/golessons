@@ -2,7 +2,6 @@ package shop_competition
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 )
@@ -47,7 +46,7 @@ func ExportAccountsCSV() []byte {
 			} else {
 				end = (i+1)*page_size + last_page_add
 			}
-			go func(ctx context.Context) {
+			go func(ctx context.Context, start int, end int) {
 				select {
 				case <-ctx.Done():
 					done <- struct{}{}
@@ -55,10 +54,10 @@ func ExportAccountsCSV() []byte {
 				default:
 				}
 				ExportAccountsCSVHelper(ctx, accountListSlice[start:end], res, done, errCh)
-			}(ctx)
+			}(ctx, start, end)
 		}
 	} else {
-		go func(ctx context.Context) {
+		go func(ctx context.Context, last_page_add int) {
 			select {
 			case <-ctx.Done():
 				done <- struct{}{}
@@ -66,46 +65,27 @@ func ExportAccountsCSV() []byte {
 			default:
 			}
 			ExportAccountsCSVHelper(ctx, accountListSlice[0:last_page_add], res, done, errCh)
-		}(ctx)
+		}(ctx, last_page_add)
 	}
 
-	errFlag := 0
-	errMsg := errors.New("")
+	result := []byte{}
 Loop:
 	for {
 		select {
-		case <-done:
-			fmt.Println("DONE")
-			errFlag = 2
+		/*		case <-done:
+				fmt.Println("DONE")
+				break Loop*/
+		case res := <-res:
+			for _, temp := range res {
+				result = append(result, temp)
+			}
+			result = append(result, res...)
 			break Loop
-		case <-res:
-			fmt.Println("RES")
-			break Loop
-		case <-errCh:
-			errMsg = <-errCh
-			errFlag = 1
-			fmt.Println("ERROR")
+		case errMsg := <-errCh:
+			fmt.Println(errMsg)
 			break Loop
 		}
 	}
-	result := []byte{}
-
-	switch errFlag {
-	case 0: // все отработало и в  res-ax все готово
-		fmt.Println("RES_1")
-		//cancel()
-		fmt.Printf("%d   %d \n", cap(res), len(res))
-		temp := <-res
-		result = append(result, temp...)
-	case 1: // прочитаем ошибку
-		fmt.Println("errMsg ")
-		fmt.Println(errMsg)
-	case 2:
-		fmt.Println("Done")
-	}
-
-	//	for _ = range done {
-	//	}
 
 	return result
 }

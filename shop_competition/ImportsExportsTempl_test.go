@@ -30,7 +30,7 @@ func XXXTestExportAccountsCSVt(_ *testing.T) {
 	fmt.Println()
 }
 
-func XXXTestExportProdcuctsCSVt(_ *testing.T) {
+func TestXXXExportProdcuctsCSVt(_ *testing.T) {
 	_ = InitProductCatalog()
 	exp := []byte{}
 	var wg sync.WaitGroup
