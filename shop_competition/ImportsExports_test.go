@@ -22,7 +22,7 @@ func TestExportAccountsCSV(_ *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportAccountsCSV()
+		exp = ExportAccountsCSVt()
 		return
 	}()
 	wg.Wait()
@@ -37,7 +37,7 @@ func TestExportProdcuctsCSV(_ *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportProdcuctsCSV()
+		exp = ExportProdcuctsCSVt()
 		return
 	}()
 	wg.Wait()
@@ -51,7 +51,7 @@ func TestImportProductsCSV(_ *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportProdcuctsCSV()
+		exp = ExportProdcuctsCSVt()
 		return
 	}()
 	wg.Wait()
@@ -59,7 +59,7 @@ func TestImportProductsCSV(_ *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		ImportProductsCSV(exp)
+		ImportProductsCSVt(exp)
 	}()
 	wg.Wait()
 

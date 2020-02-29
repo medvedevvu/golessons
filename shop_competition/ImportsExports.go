@@ -1,9 +1,9 @@
 package shop_competition
 
 import (
-	"bytes"
-	"encoding/csv"
+	"context"
 	"fmt"
+	"math"
 )
 
 /*
@@ -13,95 +13,49 @@ ImportAccountsCSV([]byte) error,
 ExportAccountsCSV() []byte.
 */
 
-type Mybyte []byte
-
-func (mb *Mybyte) Write(record AccountsList) {
-	for name, value := range record {
-		str := make([]string, 4)
-		str[0] = fmt.Sprintf("%s", name)
-		str[1] = fmt.Sprintf("%v", value.AccountType)
-		str[2] = fmt.Sprintf("%.2f", value.Balance)
-		str[3] = " "
-		for i := 0; i < len(str); i++ {
-			*mb = append(*mb, []byte(str[i])...)
-		}
-	}
-}
-
-//ExportAccountsCSV0
-func ExportAccountsCSV0() []byte {
-	accountList := GetAccountsList()
-	mb := Mybyte{}
-	for name, record := range *accountList {
-		name, record := name, record
-		vb := map[string]*Account{name: record}
-		mb.Write(vb)
-	}
-	return mb
-}
-
 //ExportAccountsCSV
 func ExportAccountsCSV() []byte {
 	accountList := GetAccountsList()
-	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
 
-	record := make([]string, 3)
-	for name, rec := range *accountList {
-		name, rec := name, rec
-		record[0] = name
-		record[1] = fmt.Sprintf("%.2f", rec.Balance)
-		record[2] = fmt.Sprintf("%v", rec.AccountType)
-		err := w.Write(record)
-		if err != nil {
-			panic(err)
+	accountListSlice := []map[string]*Account{}
+	for name, elem := range *accountList {
+		accountListSlice = append(
+			accountListSlice,
+			map[string]*Account{name: &Account{Balance: elem.Balance, AccountType: elem.AccountType}})
+	}
+
+	var page_size int = 1000
+	var pages int = int(len(accountListSlice) / page_size)
+	var last_page_add int = int(math.Mod(float64(len(accountListSlice)), float64(page_size)))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	res := make(chan []byte, 1)
+	done := make(chan struct{}, pages)
+	errCh := make(chan error, 1)
+
+	var start, end int
+	for i := 0; i < pages; i++ {
+		start = i * page_size
+		if i == (pages - 1) {
+			end = (i+1)*page_size + last_page_add
+		} else {
+			end = (i+1)*page_size + last_page_add
 		}
-	}
-	w.Flush()
-
-	if err := w.Error(); err != nil {
-		panic(err)
-	}
-
-	return buf.Bytes()
-
-}
-
-//ExportProdcuctsCSV
-func ExportProdcuctsCSV() []byte {
-	productList := GetProductList()
-	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
-
-	record := make([]string, 3)
-	for name, rec := range *productList {
-		name, rec := name, rec
-		record[0] = name
-		record[1] = fmt.Sprintf("%.2f", rec.Price)
-		record[2] = fmt.Sprintf("%v", rec.Type)
-		err := w.Write(record)
-		if err != nil {
-			panic(err)
-		}
-	}
-	w.Flush()
-
-	if err := w.Error(); err != nil {
-		panic(err)
+		go func(ctx context.Context) {
+			select {
+			case <-ctx.Done():
+				done <- struct{}{}
+				return
+			default:
+			}
+			err := ExportAccountsCSVHelper(ctx, accountListSlice[start:end], res, done, errCh)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}(ctx)
 	}
 
-	return buf.Bytes()
-}
-
-//ImportProductsCSV
-func ImportProductsCSV(data []byte) error {
-	r := csv.NewReader(bytes.NewReader(data))
-	records, err := r.ReadAll()
-	if err != nil {
-		panic(err)
-	}
-	for _, record := range records {
-		fmt.Println(record)
-	}
 	return nil
 }
