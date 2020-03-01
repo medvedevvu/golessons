@@ -1,9 +1,12 @@
 package shop_competition
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"math"
+	"time"
 )
 
 /*
@@ -25,17 +28,82 @@ func ExportAccountsCSV() []byte {
 			map[string]*Account{name: &Account{Balance: elem.Balance, AccountType: elem.AccountType}})
 	}
 
-	var page_size int = 1000
+	var page_size int = 100 // 100
 	var pages int = int(len(accountListSlice) / page_size)
 	var last_page_add int = int(math.Mod(float64(len(accountListSlice)), float64(page_size)))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	res := make(chan []byte, 1)
-	//done := make(chan struct{}, pages)
-	done := make(chan struct{}, 1)
-	errCh := make(chan error, 1)
+	res := make(chan []byte, pages)
+	done := make(chan struct{}, pages)
+	errCh := make(chan error, pages)
+	var start, end int
+	if pages > 0 {
+		for i := 0; i < pages; i++ {
+			start = i * page_size
+			if i == (pages - 1) {
+				end = (i+1)*page_size + last_page_add
+			} else {
+				end = (i+1)*page_size + last_page_add
+			}
+			go func(ctx context.Context, start int, end int) {
+				ExportAccountsCSVHelper(ctx, accountListSlice[start:end], res, done, errCh)
+			}(ctx, start, end)
+			time.Sleep(time.Second)
+		}
+	} else {
+		go func(ctx context.Context, last_page_add int) {
+			ExportAccountsCSVHelper(ctx, accountListSlice[0:last_page_add], res, done, errCh)
+			time.Sleep(time.Second)
+		}(ctx, last_page_add)
+	}
+	result := []byte{}
+Loop:
+	for {
+		select {
+		case res1 := <-res:
+			for _, temp := range res1 {
+				result = append(result, temp)
+			}
+
+		loop:
+			for {
+				if len(done) == pages {
+					break loop
+				}
+			}
+			for i := 0; i < len(done)-1; i++ {
+				res1 := <-res
+				result = append(result, res1...)
+			}
+			break Loop
+		case errMsg := <-errCh:
+			fmt.Println(errMsg)
+			break Loop
+		}
+	}
+
+	return result
+}
+
+//ImportAccountsCSV
+func ImportAccountsCSV(data []byte) error {
+	r := csv.NewReader(bytes.NewReader(data))
+	records, err := r.ReadAll()
+	if err != nil {
+		panic(err)
+	}
+	var page_size int = 100 // 100
+	var pages int = int(len(records) / page_size)
+	var last_page_add int = int(math.Mod(float64(len(records)), float64(page_size)))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	res := make(chan *AccountsList, pages)
+	done := make(chan struct{}, pages)
+	errCh := make(chan error, pages)
 
 	var start, end int
 	if pages > 0 {
@@ -47,45 +115,45 @@ func ExportAccountsCSV() []byte {
 				end = (i+1)*page_size + last_page_add
 			}
 			go func(ctx context.Context, start int, end int) {
-				select {
-				case <-ctx.Done():
-					done <- struct{}{}
-					return
-				default:
-				}
-				ExportAccountsCSVHelper(ctx, accountListSlice[start:end], res, done, errCh)
+				ImportAccountsCSVHelper(ctx, records[start:end], res, done, errCh)
 			}(ctx, start, end)
+			time.Sleep(time.Second)
 		}
 	} else {
 		go func(ctx context.Context, last_page_add int) {
-			select {
-			case <-ctx.Done():
-				done <- struct{}{}
-				return
-			default:
-			}
-			ExportAccountsCSVHelper(ctx, accountListSlice[0:last_page_add], res, done, errCh)
+			ImportAccountsCSVHelper(ctx, records[0:last_page_add], res, done, errCh)
+			time.Sleep(time.Second)
 		}(ctx, last_page_add)
 	}
-
-	result := []byte{}
+	//result := map[string]*Account{}
+	var result *AccountsList
 Loop:
 	for {
 		select {
-		/*		case <-done:
-				fmt.Println("DONE")
-				break Loop*/
-		case res := <-res:
-			for _, temp := range res {
-				result = append(result, temp)
+		case res1 := <-res:
+			for key, val := range *res1 {
+				(*result)[key] = val
 			}
-			result = append(result, res...)
+
+		loop:
+			for {
+				if len(done) == pages {
+					break loop
+				}
+			}
+			for i := 0; i < len(done)-1; i++ {
+				res1 := <-res
+				for key, val := range *res1 {
+					(*result)[key] = val
+				}
+			}
 			break Loop
 		case errMsg := <-errCh:
-			fmt.Println(errMsg)
-			break Loop
+			cancel()
+			return errMsg
 		}
 	}
 
-	return result
+	return nil
+
 }

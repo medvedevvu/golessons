@@ -24,6 +24,13 @@ func InitAccountList() *AccountsList {
 	if err != nil {
 		fmt.Println(err)
 	}
+	for i := 0; i < 1000; i++ {
+		s := fmt.Sprintf("User%d", i)
+		err = testAccList.Register(s, AccountNormal)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 	return testAccList
 }
 

@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"reflect"
+	"strconv"
 )
 
 //ExportAccountsCSVHelper
@@ -17,10 +18,7 @@ func ExportAccountsCSVHelper(
 	errCh chan error) {
 
 	defer func() {
-		select {
-		case <-ctx.Done():
-			done <- struct{}{}
-		}
+		done <- struct{}{}
 	}()
 
 	var buf bytes.Buffer
@@ -45,5 +43,57 @@ func ExportAccountsCSVHelper(
 		return
 	}
 	res <- buf.Bytes()
+	return
+}
+
+//ImportAccountsCSVHelper
+func ImportAccountsCSVHelper(
+	ctx context.Context,
+	accountList [][]string,
+	res chan *AccountsList,
+	done chan struct{},
+	errCh chan error) {
+
+	defer func() {
+		select {
+		case err := <-errCh:
+			errCh <- err
+		default:
+			done <- struct{}{}
+		}
+		return
+	}()
+
+	tempAccountList := &AccountsList{}
+	for _, rec := range accountList {
+		name := rec[0] // name
+		intval, err := strconv.Atoi(rec[1])
+		if err != nil {
+			errCh <- fmt.Errorf("%s -- ошибка парсинга типа аккаунта %s",
+				name, rec[1])
+			return
+		}
+		accountType := AccountType(uint8(intval)) // accountType
+		value, err := strconv.ParseFloat(rec[2], 32)
+		if err != nil {
+			errCh <- fmt.Errorf("%s -- ошибка парсинга баланса %s",
+				name, rec[2])
+			return
+		}
+		balance := float32(value) // Balance
+		err = tempAccountList.Register(name, accountType)
+		if err != nil {
+			errCh <- fmt.Errorf("%s -- ошибка регистрации аккаунта %v",
+				name, accountType)
+			return
+		}
+		err = tempAccountList.AddBalance(name, balance)
+		if err != nil {
+			errCh <- fmt.Errorf("%s -- ошибка добавления баланса %v",
+				name, balance)
+			return
+		}
+	}
+	res <- tempAccountList
 	return
 }
