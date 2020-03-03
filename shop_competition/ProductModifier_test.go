@@ -57,6 +57,12 @@ func InitProductCatalog() *ProductsList {
 	if err != nil {
 		fmt.Printf("%s\n", err)
 	}
+	for i := 0; i < 10000; i++ {
+		err = lproductList.AddProduct(fmt.Sprintf("Продукт %d", i), Product{Price: 10.51, Type: ProductNormal})
+		if err != nil {
+			fmt.Printf("%s\n", err)
+		}
+	}
 	return lproductList
 }
 

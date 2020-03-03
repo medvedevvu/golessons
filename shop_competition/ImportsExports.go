@@ -16,7 +16,7 @@ func ImportProductsCSV(data []byte) error {
 	if err != nil {
 		panic(err)
 	}
-	var page_size int = 100 // 100
+	var page_size int = 1000 // 100
 	var pages int = int(len(records) / page_size)
 	var last_page_add int = int(math.Mod(float64(len(records)), float64(page_size)))
 
