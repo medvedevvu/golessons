@@ -107,7 +107,7 @@ func TestRegisterEmptyNameAccountsList(t *testing.T) {
 	wg.Wait()
 }
 func TestAddBalance(t *testing.T) {
-	return nil
+	//return nil
 	vtest := InitAccountList()
 	names := map[string]float32{"Kola": 325.12,
 		"Vasiy": 900.21, "Dram": 10, "Vortis": 23}
