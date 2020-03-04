@@ -1,7 +1,7 @@
 # golessons
 I study golang
 <HR>
-HWORK5
+HWORK6
 <HR>
 Rebuild Shop
 <HR>
