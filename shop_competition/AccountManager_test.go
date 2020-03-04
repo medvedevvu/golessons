@@ -34,6 +34,27 @@ func InitAccountList() *AccountsList {
 	return testAccList
 }
 
+func InitSmallAccountList() *AccountsList {
+	testAccList := NewAccountsList()
+	err := testAccList.Register("Kola", AccountNormal)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = testAccList.Register("Vasiy", AccountNormal)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = testAccList.Register("Dram", AccountPremium)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = testAccList.Register("Vortis", AccountPremium)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return testAccList
+}
+
 func TestInitAccountList(t *testing.T) {
 	vtest := InitAccountList()
 	if len(*vtest) == 0 {
@@ -162,4 +183,51 @@ func TestSetBalance(t *testing.T) {
 	}()
 	wg.Wait()
 
+}
+
+func TestCheckBalance(t *testing.T) {
+	//vtest := InitSmallAccountList()
+	vtest := InitAccountList()
+	var wg sync.WaitGroup
+
+	names := map[string]float32{"Kola": 325.12,
+		"Vasiy": 900.21, "Dram": 10, "Vortis": 23}
+
+	for key, vals := range names {
+		key, vals := key, vals
+		err := vtest.AddBalance(key, vals)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		vtest.AddBalance("Dram", 100)
+
+		for key, value := range names {
+
+			if key == "Dram" {
+				locvalue, err := vtest.Balance(key)
+				if err != nil {
+					t.Fatalf(" ошибка получения баланса ")
+				}
+				if locvalue != 110 {
+					t.Fatalf(" ошибка добавления баланса ")
+				}
+			} else {
+				locvalue, err := vtest.Balance(key)
+				if err != nil {
+					t.Fatalf(" ошибка получения баланса ")
+				}
+				if locvalue != value {
+					t.Fatalf(" %s  %v <> %v  ", key, value, locvalue)
+				}
+			}
+		}
+	}()
+	wg.Wait()
 }
