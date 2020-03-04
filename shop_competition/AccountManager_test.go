@@ -27,6 +27,7 @@ func InitAccountList() *AccountsList {
 	for i := 0; i < 1000; i++ {
 		s := fmt.Sprintf("User%d", i)
 		err = testAccList.Register(s, AccountNormal)
+		err = testAccList.AddBalance(s, 99999)
 		if err != nil {
 			fmt.Println(err)
 		}
