@@ -3,27 +3,10 @@ package shop_competition
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 )
 
-var (
-	gaccountsOrders *AccountsOrders
-	once2           sync.Once
-)
-
-//NewAccountsOrders конструктор
-func NewAccountsOrders() *AccountsOrders {
-	once2.Do(func() {
-		gaccountsOrders = &AccountsOrders{}
-	})
-	return gaccountsOrders
-}
-
-// GetAccountsOrders получить список список Account -> Orders
-func GetAccountsOrders() *AccountsOrders {
-	return gaccountsOrders
-}
+var accountsOrdersMain = &AccountsOrders{}
 
 // PlaceOrder
 func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) error {
@@ -33,11 +16,11 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			vaccountsList := GetAccountsList()
-			vproductsList := GetProductList()
-			vboundlesList := GetBundlesList()
+			vaccountsList := accountsListMain
+			vproductsList := productListMain
+			vboundlesList := bundlesListMain
 			globalMutex.Lock()
-			vuser, ok := (*vaccountsList)[username]
+			vuser, ok := (vaccountsList)[username]
 			if !ok {
 				lchan <- fmt.Sprintf(" пользователь %s не регистрирован", username)
 				globalMutex.Unlock()

@@ -76,7 +76,7 @@ Loop:
 			cancel() // выключаю все горутины
 			// все прочитались - добовляем в базовую коллекцию
 			globalMutex.Lock()
-			productsList := GetProductList()
+			productsList := productListMain
 			for key, val := range result {
 				(*productsList)[key] = val
 			}
@@ -93,7 +93,7 @@ Loop:
 //ExportProdcuctsCSV
 func ExportProdcuctsCSV() []byte {
 	globalMutex.Lock()
-	productList := GetProductList()
+	productList := productListMain
 	globalMutex.Unlock()
 	productListSlice := []map[string]*Product{}
 	for name, elem := range *productList {
@@ -163,10 +163,10 @@ Loop:
 //ExportAccountsCSV
 func ExportAccountsCSV() []byte {
 	globalMutex.Lock()
-	accountList := GetAccountsList()
+	accountList := accountsListMain
 	globalMutex.Unlock()
 	accountListSlice := []map[string]*Account{}
-	for name, elem := range *accountList {
+	for name, elem := range accountList {
 		accountListSlice = append(
 			accountListSlice,
 			map[string]*Account{name: &Account{Balance: elem.Balance, AccountType: elem.AccountType}})
@@ -298,9 +298,9 @@ Loop:
 			cancel() // выключаю все горутины
 			// все прочитались - добовляем в базовую коллекцию
 			globalMutex.Lock()
-			accountList := GetAccountsList()
+			accountList := accountsListMain
 			for key, val := range result {
-				(*accountList)[key] = val
+				(accountList)[key] = val
 			}
 			globalMutex.Unlock()
 			break Loop

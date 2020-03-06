@@ -2,12 +2,13 @@ package shop_competition
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"testing"
 )
 
-func InitAccountList() *AccountsList {
-	testAccList := NewAccountsList()
+func InitAccountList() AccountsList {
+	testAccList := AccountsList{}
 	err := testAccList.Register("Kola", AccountNormal)
 	if err != nil {
 		fmt.Println(err)
@@ -35,8 +36,8 @@ func InitAccountList() *AccountsList {
 	return testAccList
 }
 
-func InitSmallAccountList() *AccountsList {
-	testAccList := NewAccountsList()
+func InitSmallAccountList() AccountsList {
+	testAccList := AccountsList{}
 	err := testAccList.Register("Kola", AccountNormal)
 	if err != nil {
 		fmt.Println(err)
@@ -58,14 +59,14 @@ func InitSmallAccountList() *AccountsList {
 
 func TestInitAccountList(t *testing.T) {
 	vtest := InitAccountList()
-	if len(*vtest) == 0 {
+	if len(vtest) == 0 {
 		t.Fatalf("не выполнена инициализация ")
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_, ok := (*vtest)["Dram"]
+		_, ok := vtest["Dram"]
 		if !ok {
 			t.Fatalf("Init fail with user %s", "Dram")
 		}
@@ -75,17 +76,18 @@ func TestInitAccountList(t *testing.T) {
 func Test2WiceRegisterAccountsList(t *testing.T) {
 	vtest := InitAccountList()
 	var wg sync.WaitGroup
-	wg.Add(2)
+	var times_ int = 1
+	wg.Add(times_)
 	go func() {
 		defer wg.Done()
 		err := vtest.Register("Vortis", AccountPremium)
 		if err == nil {
 			t.Fatalf("Fail with register user %s", "Vortis")
 		}
-	}()
-	go func() {
-		defer wg.Done()
-		err := vtest.Register("Vortis", AccountPremium)
+		//	}()
+		//	go func() {
+		//		defer wg.Done()
+		err = vtest.Register("Vortis", AccountPremium)
 		if err == nil {
 			t.Fatalf("Fail with register twice user %s", "Vortis")
 		}
@@ -106,59 +108,38 @@ func TestRegisterEmptyNameAccountsList(t *testing.T) {
 	}()
 	wg.Wait()
 }
-func TestAddBalance(t *testing.T) {
-	//return nil
-	vtest := InitAccountList()
-	names := map[string]float32{"Kola": 325.12,
-		"Vasiy": 900.21, "Dram": 10, "Vortis": 23}
-
-	var wg sync.WaitGroup
-	wg.Add(4)
-	for key, vals := range names {
-		key, vals := key, vals
-		go func() {
-			defer wg.Done()
-			err := vtest.AddBalance(key, vals)
-			if err != nil {
-				t.Error(err)
-			}
-		}()
+func TestAddZeroBalance(t *testing.T) {
+	vtest := AccountsList{}
+	vtest.Register("Ada", AccountPremium)
+	err := vtest.AddBalance("Ada", 0)
+	if err == nil {
+		t.Fatalf(" добавлен нулевой баланс ")
 	}
+}
 
-	wg.Wait()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		v, err := vtest.Balance("Vasiy")
-		if err != nil {
-			if fmt.Sprintf("%s", err) != "ok" {
-				t.Fatal(err)
-			}
-		}
-		if v != (*vtest)["Vasiy"].Balance {
-			t.Fatalf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
-		}
-	}()
-	wg.Wait()
+func TestAddMinusBalance(t *testing.T) {
+	vtest := AccountsList{}
+	vtest.Register("Ada", AccountPremium)
+	err := vtest.AddBalance("Ada", -12)
+	if err == nil {
+		t.Fatalf(" добавлен отрицательный баланс ")
+	}
 }
 
 func TestSetBalance(t *testing.T) {
 	var wg sync.WaitGroup
-	vtest := NewAccountsList()
+	vtest := AccountsList{}
 	vtest.Register("Ada", AccountPremium)
 	vtest.Register("Vasiy", AccountPremium)
 	vtest.Register("Gladis", AccountNormal)
 	vtest.Register("Boris", AccountNormal)
 	vtest.Register("Fargus", AccountNormal)
 	vtest.Register("Wilams", AccountNormal)
-
 	names := map[string]float32{"Ada": 1111.12,
 		"Vasiy": 2222.21, "Boris": 3333, "Gladis": 5555,
 		"Fargus": 4444, "Wilams": 555.32}
-
-	wg.Add(6)
-
+	var delta float32 = 950
+	wg.Add(len(names))
 	for key, vals := range names {
 		go func(key string, vals float32) {
 			defer wg.Done()
@@ -169,31 +150,45 @@ func TestSetBalance(t *testing.T) {
 		}(key, vals)
 	}
 	wg.Wait()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		v, err := vtest.Balance("Vasiy")
-		if err != nil {
-			if fmt.Sprintf("%s", err) != "ok" {
-				t.Fatal(err)
+	// сделаем копию
+	vtestBefore := AccountsList{}
+	for x, value := range vtest {
+		xvalue := *value
+		vtestBefore[x] = &xvalue
+	}
+	// добавим дельту
+	wg.Add(len(names))
+	for idx := range vtest {
+		go func(idx string, delta float32) {
+			defer wg.Done()
+			err := vtest.AddBalance(idx, delta)
+			if err != nil {
+				t.Fatalf("%v\n", err)
 			}
-		}
-		if v != (*vtest)["Vasiy"].Balance {
-			t.Fatalf(" %f != %f ", v, (*vtest)["Vasiy"].Balance)
-		}
-	}()
+		}(idx, delta)
+	}
 	wg.Wait()
-
+	// сравнили
+	for idx := range vtest {
+		after := vtest[idx].Balance
+		before := vtestBefore[idx].Balance
+		a := after * 100
+		b := before * 100
+		d := delta * 100
+		r := math.Round(float64(a) - float64(b))
+		if r != float64(d) {
+			t.Fatalf("%s %v - %v == %v  \n", idx, after, before, delta)
+		}
+	}
 }
 
-func TestCheckBalance(t *testing.T) {
-	//vtest := InitSmallAccountList()
+func TestCircleCheckBalance(t *testing.T) {
 	vtest := InitAccountList()
-	var wg sync.WaitGroup
 
 	names := map[string]float32{"Kola": 325.12,
 		"Vasiy": 900.21, "Dram": 10, "Vortis": 23}
+
+	var delta float32 = 100
 
 	for key, vals := range names {
 		key, vals := key, vals
@@ -203,33 +198,37 @@ func TestCheckBalance(t *testing.T) {
 		}
 	}
 
-	wg.Add(1)
+	// сделаем копию
+	vtestBefore := AccountsList{}
+	for x, value := range vtest {
+		xvalue := *value
+		vtestBefore[x] = &xvalue
+	}
 
-	go func() {
-		defer wg.Done()
+	vtest.AddBalance("Dram", delta) // добавим баланс
 
-		vtest.AddBalance("Dram", 100)
+	for idx, _ := range names {
 
-		for key, value := range names {
-
-			if key == "Dram" {
-				locvalue, err := vtest.Balance(key)
-				if err != nil {
-					t.Fatalf(" ошибка получения баланса ")
-				}
-				if locvalue != 110 {
-					t.Fatalf(" ошибка добавления баланса ")
-				}
-			} else {
-				locvalue, err := vtest.Balance(key)
-				if err != nil {
-					t.Fatalf(" ошибка получения баланса ")
-				}
-				if locvalue != value {
-					t.Fatalf(" %s  %v <> %v  ", key, value, locvalue)
-				}
+		if idx == "Dram" {
+			after := vtest[idx].Balance
+			before := vtestBefore[idx].Balance
+			a := after * 100
+			b := before * 100
+			d := delta * 100
+			r := math.Round(float64(a) - float64(b))
+			if r != float64(d) {
+				t.Fatalf("ошибка добавления баланса "+
+					"%s %v - %v == %v  \n", idx, after, before, delta)
+			}
+		} else {
+			after, err := vtest.Balance(idx)
+			before, err := vtestBefore.Balance(idx)
+			if err != nil {
+				t.Fatalf(" ошибка получения баланса ")
+			}
+			if after != before {
+				t.Fatalf(" %s  %v <> %v  ", idx, after, before)
 			}
 		}
-	}()
-	wg.Wait()
+	}
 }

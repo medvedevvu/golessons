@@ -7,7 +7,7 @@ import (
 )
 
 func InitEnviroment() (*AccountsList, *ProductsList, *BundlesList, *AccountsOrders) {
-	testAccList := NewAccountsList()
+	testAccList := &AccountsList{}
 	testAccList.Register("Kola", AccountNormal)
 	testAccList.Register("Vasiy", AccountNormal)
 	testAccList.Register("Dram", AccountPremium)
@@ -20,7 +20,7 @@ func InitEnviroment() (*AccountsList, *ProductsList, *BundlesList, *AccountsOrde
 		_ = testAccList.AddBalance(key, vals)
 	}
 
-	lproductList := NewProductsList()
+	lproductList := &ProductsList{}
 	_ = lproductList.AddProduct("колбаса", Product{Price: 125.23, Type: ProductNormal})
 	_ = lproductList.AddProduct("водка", Product{Price: 400.23, Type: ProductNormal})
 	_ = lproductList.AddProduct("сыр", Product{Price: 315.14, Type: ProductPremium})
@@ -34,20 +34,20 @@ func InitEnviroment() (*AccountsList, *ProductsList, *BundlesList, *AccountsOrde
 	_ = lproductList.AddProduct("духи", Product{Price: 470.51, Type: ProductPremium})
 	_ = lproductList.AddProduct("спички", Product{Price: 22.51, Type: ProductNormal})
 
-	vbundleList := NewBundlesList()
+	vbundleList := &BundlesList{}
 	_ = vbundleList.AddBundle("8 марта", "духи", 0.3, "цветы", "шампанское", "шоколад")
 	_ = vbundleList.AddBundle("23 февраля", "водка", 0.4, "сыр", "колбаса", "хлеб")
 	_ = vbundleList.AddBundle("Новый год", "шампанское", 0.4, "сыр", "колбаса", "шоколад")
 
-	vaccountsOrders := NewAccountsOrders()
+	vaccountsOrders := &AccountsOrders{}
 
 	return testAccList, lproductList, vbundleList, vaccountsOrders
 }
 
 func TestAsyncPlaceOrder(t *testing.T) {
-	_, _, _, _ = InitEnviroment()
-	vaccountsOrders := GetAccountsOrders()
-	vaccountsList := GetAccountsList()
+	vaccountsList, _, _, vaccountsOrders := InitEnviroment()
+	//vaccountsOrders := accountsOrdersMain
+	//vaccountsList := accountsListMain
 
 	order := Order{}
 	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
@@ -150,8 +150,8 @@ func TestAsyncPlaceOrder(t *testing.T) {
 
 func TestCheckPlaceOrder(t *testing.T) {
 	_, _, _, _ = InitEnviroment()
-	vaccountsOrders := GetAccountsOrders()
-	vaccountsList := GetAccountsList()
+	vaccountsOrders := accountsOrdersMain
+	vaccountsList := accountsListMain
 
 	order := Order{}
 	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
@@ -224,8 +224,8 @@ func TestCheckPlaceOrder(t *testing.T) {
 
 func TestPlaceOrder(t *testing.T) {
 	_, _, _, _ = InitEnviroment()
-	vaccountsOrders := GetAccountsOrders()
-	vaccountsList := GetAccountsList()
+	vaccountsOrders := accountsOrdersMain
+	vaccountsList := accountsListMain
 
 	order := Order{}
 	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
@@ -305,8 +305,8 @@ func TestPlaceOrder(t *testing.T) {
 
 func TestPlaceOrderAndAddBalance(t *testing.T) {
 	_, _, _, _ = InitEnviroment()
-	vaccountsOrders := GetAccountsOrders()
-	vaccountsList := GetAccountsList()
+	vaccountsOrders := accountsOrdersMain
+	vaccountsList := accountsListMain
 
 	order := Order{}
 	order.ProductsName = []string{"водка", "шампанское", "колбаса"}

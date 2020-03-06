@@ -9,23 +9,9 @@ import (
 )
 
 var (
-	gproductList *ProductsList
-	once3        sync.Once
-	globalMutex  sync.Mutex
+	productListMain = &ProductsList{}
+	globalMutex     sync.Mutex
 )
-
-// NewProductsList конструктор
-func NewProductsList() *ProductsList {
-	once3.Do(func() {
-		gproductList = &ProductsList{}
-	})
-	return gproductList
-}
-
-// GetProductList возвращает каталог товаров
-func GetProductList() *ProductsList {
-	return gproductList
-}
 
 //CheckAttrsOfProduct проверка атрибутов товара
 func (productsList *ProductsList) CheckAttrsOfProduct(productName string,

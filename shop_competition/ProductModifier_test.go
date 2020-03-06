@@ -7,7 +7,7 @@ import (
 )
 
 func InitProductCatalog() *ProductsList {
-	lproductList := NewProductsList()
+	lproductList := &ProductsList{}
 	err := lproductList.AddProduct("колбаса", Product{Price: 125.23, Type: ProductNormal})
 	if err != nil {
 		fmt.Printf("%s\n", err)
@@ -68,7 +68,7 @@ func InitProductCatalog() *ProductsList {
 
 func TestInitProductCatalog(t *testing.T) {
 	InitProductCatalog()
-	vals := GetProductList()
+	vals := productListMain
 	if len(*vals) == 0 {
 		t.Fatalf("Инициализация не прошла !")
 	}

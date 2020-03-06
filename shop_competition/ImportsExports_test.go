@@ -10,7 +10,7 @@ import (
 )
 
 func InitAccountListWithBalance() *AccountsList {
-	testAccList := NewAccountsList()
+	testAccList := &AccountsList{}
 	err := testAccList.Register("Kola", AccountNormal)
 	err = testAccList.AddBalance("Kola", 102.21)
 	if err != nil {
@@ -43,7 +43,7 @@ func InitAccountListWithBalance() *AccountsList {
 }
 
 func InitAccountListWithWrongBalance() *AccountsList {
-	testAccList := NewAccountsList()
+	testAccList := &AccountsList{}
 	err := testAccList.Register("Kola", AccountNormal)
 	err = testAccList.AddBalance("Kola", 102.21)
 	if err != nil {
@@ -108,10 +108,10 @@ func TestImportAccountsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
-	accountList := GetAccountsList()
+	accountList := accountsListMain
 	// удалим справочник
-	for k := range *accountList {
-		delete((*accountList), k)
+	for k := range accountList {
+		delete((accountList), k)
 	}
 	// закачаем по новой
 	wg.Add(1)
@@ -125,7 +125,7 @@ func TestImportAccountsCSV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s\n", err)
 	}
-	if len(*accountList) <= 0 {
+	if len(accountList) <= 0 {
 		t.Fatal()
 	}
 }
@@ -142,10 +142,10 @@ func TestWrongBalanceImportAccountsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
-	accountList := GetAccountsList()
+	accountList := accountsListMain
 	// удалим справочник
-	for k := range *accountList {
-		delete((*accountList), k)
+	for k := range accountList {
+		delete((accountList), k)
 	}
 	// закачаем по новой
 	wg.Add(1)
@@ -187,7 +187,7 @@ func TestImportProductsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
-	products := GetProductList()
+	products := productListMain
 	// удалим справочник
 	for k := range *products {
 		delete((*products), k)
@@ -201,7 +201,7 @@ func TestImportProductsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 	globalMutex.Lock()
-	records := GetProductList()
+	records := productListMain
 	globalMutex.Unlock()
 
 	len_records := len(*records)
@@ -212,7 +212,7 @@ func TestImportProductsCSV(t *testing.T) {
 }
 
 func InitWrongProductCatalog() *ProductsList {
-	lproductList := NewProductsList()
+	lproductList := &ProductsList{}
 	for i := 0; i < 10000; i++ {
 		err := lproductList.AddProduct(fmt.Sprintf("Продукт %d", i), Product{Price: 10.51, Type: ProductNormal})
 		if err != nil {
@@ -235,7 +235,7 @@ func TestWrongDataImportProductsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
-	products := GetProductList()
+	products := productListMain
 	// удалим справочник
 	for k := range *products {
 		delete((*products), k)

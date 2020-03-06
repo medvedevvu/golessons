@@ -8,7 +8,7 @@ import (
 
 func InitBundles() *BundlesList {
 	InitProductCatalog()
-	vbundleList := NewBundlesList()
+	vbundleList := &BundlesList{}
 	err := vbundleList.AddBundle("8 марта", "духи", 0.3, "цветы", "шампанское", "шоколад")
 	if err != nil {
 		fmt.Printf("%s", err)

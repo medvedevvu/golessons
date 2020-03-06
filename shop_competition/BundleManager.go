@@ -3,25 +3,10 @@ package shop_competition
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 )
 
-var gbundlesList *BundlesList
-var once1 sync.Once
-
-//NewAccountsBundles конструктор
-func NewBundlesList() *BundlesList {
-	once1.Do(func() {
-		gbundlesList = &BundlesList{}
-	})
-	return gbundlesList
-}
-
-//GetBundlesList возвращает каталог товаров
-func GetBundlesList() *BundlesList {
-	return gbundlesList
-}
+var bundlesListMain = &BundlesList{}
 
 //RemoveBundle удалить комплект
 func (bundlesList *BundlesList) RemoveBundle(name string) error {
@@ -102,7 +87,7 @@ func (bundlesList *BundlesList) AddBundle(name string,
 			return
 		}
 		globalMutex.Lock()
-		vproductList := GetProductList() // получить каталог товаров
+		vproductList := productListMain // получить каталог товаров
 		product, ok := (*vproductList)[main]
 		globalMutex.Unlock()
 		if !ok {

@@ -5,27 +5,11 @@ import (
 	"fmt"
 	sorting "sort"
 	"strings"
-	"sync"
 	"time"
 )
 
-// NewAccountsList коструктор
-
-var (
-	gaccountsList *AccountsList
-	once          sync.Once
-)
-
-func NewAccountsList() *AccountsList {
-	once.Do(func() {
-		gaccountsList = &AccountsList{}
-	})
-	return gaccountsList
-}
-
-func GetAccountsList() *AccountsList {
-	return gaccountsList
-}
+//  справочник аккаунтов
+var accountsListMain = AccountsList{}
 
 // Register - регистрация пользователя
 func (accountsList *AccountsList) Register(username string, accounttype AccountType) error {
@@ -119,7 +103,6 @@ func (accountsList *AccountsList) OLDRegister1(username string, accounttype Acco
 // AddBalance - добавим баланс
 func (accountsList *AccountsList) AddBalance(username string,
 	sum float32) error {
-	return nil
 	done := make(chan struct{})
 	errmsg := make(chan string, 1)
 
