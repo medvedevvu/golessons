@@ -119,7 +119,6 @@ func (accountsList *AccountsList) OLDRegister1(username string, accounttype Acco
 // AddBalance - добавим баланс
 func (accountsList *AccountsList) AddBalance(username string,
 	sum float32) error {
-	return nil
 	done := make(chan struct{})
 	errmsg := make(chan string, 1)
 
