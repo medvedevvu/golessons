@@ -6,71 +6,70 @@ import (
 	"time"
 )
 
-var accountsOrdersMain = &AccountsOrders{}
+var AccountsOrdersMain = AccountsOrders{}
 
-// PlaceOrder
+//PlaceOrder
 func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) error {
 	timer := time.NewTimer(time.Second)
-	mthread := func() chan string {
-		lchan := make(chan string)
-		done := make(chan struct{})
-		go func() {
-			defer close(done)
-			vaccountsList := accountsListMain
-			vproductsList := productListMain
-			vboundlesList := bundlesListMain
-			globalMutex.Lock()
-			vuser, ok := (vaccountsList)[username]
-			if !ok {
-				lchan <- fmt.Sprintf(" пользователь %s не регистрирован", username)
-				globalMutex.Unlock()
-				return
-			}
-			var productPrice float32
-			for _, productName := range order.ProductsName {
-				vdiscount := getDiscount(vuser.AccountType, (vproductsList)[productName].Type)
-				productPrice += (vproductsList)[productName].Price * vdiscount
-			}
-			var bundlePrice float32
-			for _, bundleName := range order.BundlesName {
-				vboundl := (*vboundlesList)[bundleName]
-				for _, productName := range vboundl.ProductsName {
-					bundlePrice += (vproductsList)[productName].Price * vboundl.Discount
-				}
-			}
 
-			order.BundlesPrice = bundlePrice
-			order.ProductsPrice = productPrice
-			order.TotalOrderPrice = bundlePrice + productPrice
+	vaccountsList := AccountsListMain
+	vproductsList := ProductListMain
+	vboundlesList := BundlesListMain
 
-			if (vuser.Balance - order.TotalOrderPrice) <= 0 {
-				lchan <- fmt.Sprintf(" %s : остаток %f - списание %f = %f - мало на счету",
-					username,
-					vuser.Balance,
-					order.TotalOrderPrice,
-					vuser.Balance-order.TotalOrderPrice)
-				globalMutex.Unlock()
-				return
-			}
-			vuser.Balance -= order.TotalOrderPrice
-			// запишем в историю списаний
-			(*accountsOrders)[username] = append((*accountsOrders)[username], order)
+	lchan := make(chan error)
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		globalMutex.Lock()
+		vuser, ok := vaccountsList[username]
+		if !ok {
+			lchan <- fmt.Errorf(" пользователь %s не регистрирован", username)
 			globalMutex.Unlock()
-			lchan <- ""
 			return
-		}()
-		return lchan
-	}
-	res := mthread()
-	select {
-	case localmess := <-res:
-		if localmess == "" {
-			return nil
-		} else {
-			return errors.New(localmess)
 		}
-	case <-timer.C:
-		return errors.New("Превышен интервал ожидания")
+		var productPrice float32
+		for _, productName := range order.ProductsName {
+			vdiscount := getDiscount(vuser.AccountType, (vproductsList)[productName].Type)
+			productPrice += (vproductsList)[productName].Price * vdiscount
+		}
+		var bundlePrice float32
+		for _, bundleName := range order.BundlesName {
+			vboundl := (vboundlesList)[bundleName]
+			for _, productName := range vboundl.ProductsName {
+				bundlePrice += (vproductsList)[productName].Price * vboundl.Discount
+			}
+		}
+
+		order.BundlesPrice = bundlePrice
+		order.ProductsPrice = productPrice
+		order.TotalOrderPrice = bundlePrice + productPrice
+
+		if (vuser.Balance - order.TotalOrderPrice) <= 0 {
+			lchan <- fmt.Errorf(" %s : остаток %f - списание %f = %f - мало на счету",
+				username,
+				vuser.Balance,
+				order.TotalOrderPrice,
+				vuser.Balance-order.TotalOrderPrice)
+			globalMutex.Unlock()
+			return
+		}
+		vuser.Balance -= order.TotalOrderPrice
+		// запишем в историю списаний
+		(*accountsOrders)[username] = append((*accountsOrders)[username], order)
+		globalMutex.Unlock()
+		lchan <- nil
+		return
+	}()
+
+	for {
+		select {
+		case localerr := <-lchan:
+			return localerr
+		case <-timer.C:
+			return errors.New("Превышен интервал ожидания")
+		default:
+		}
 	}
 }
 

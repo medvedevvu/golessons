@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var bundlesListMain = &BundlesList{}
+var BundlesListMain = BundlesList{}
 
 //RemoveBundle удалить комплект
 func (bundlesList *BundlesList) RemoveBundle(name string) error {
@@ -87,7 +87,7 @@ func (bundlesList *BundlesList) AddBundle(name string,
 			return
 		}
 		globalMutex.Lock()
-		vproductList := productListMain // получить каталог товаров
+		vproductList := ProductListMain // получить каталог товаров
 		product, ok := (vproductList)[main]
 		globalMutex.Unlock()
 		if !ok {

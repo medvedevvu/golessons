@@ -8,53 +8,53 @@ import (
 )
 
 func InitAccountList() AccountsList {
-	testAccList := AccountsList{}
-	err := testAccList.Register("Kola", AccountNormal)
+	AccountsListMain = AccountsList{}
+	err := AccountsListMain.Register("Kola", AccountNormal)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Vasiy", AccountNormal)
+	err = AccountsListMain.Register("Vasiy", AccountNormal)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Dram", AccountPremium)
+	err = AccountsListMain.Register("Dram", AccountPremium)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Vortis", AccountPremium)
+	err = AccountsListMain.Register("Vortis", AccountPremium)
 	if err != nil {
 		fmt.Println(err)
 	}
 	for i := 0; i < 1000; i++ {
 		s := fmt.Sprintf("User%d", i)
-		err = testAccList.Register(s, AccountNormal)
-		err = testAccList.AddBalance(s, 99999)
+		err = AccountsListMain.Register(s, AccountNormal)
+		err = AccountsListMain.AddBalance(s, 99999)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	return testAccList
+	return AccountsListMain
 }
 
 func InitSmallAccountList() AccountsList {
-	testAccList := AccountsList{}
-	err := testAccList.Register("Kola", AccountNormal)
+	AccountsListMain = AccountsList{}
+	err := AccountsListMain.Register("Kola", AccountNormal)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Vasiy", AccountNormal)
+	err = AccountsListMain.Register("Vasiy", AccountNormal)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Dram", AccountPremium)
+	err = AccountsListMain.Register("Dram", AccountPremium)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Vortis", AccountPremium)
+	err = AccountsListMain.Register("Vortis", AccountPremium)
 	if err != nil {
 		fmt.Println(err)
 	}
-	return testAccList
+	return AccountsListMain
 }
 
 func TestInitAccountList(t *testing.T) {
@@ -84,9 +84,6 @@ func Test2WiceRegisterAccountsList(t *testing.T) {
 		if err == nil {
 			t.Fatalf("Fail with register user %s", "Vortis")
 		}
-		//	}()
-		//	go func() {
-		//		defer wg.Done()
 		err = vtest.Register("Vortis", AccountPremium)
 		if err == nil {
 			t.Fatalf("Fail with register twice user %s", "Vortis")

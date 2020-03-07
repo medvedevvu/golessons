@@ -9,68 +9,68 @@ import (
 	"testing"
 )
 
-func InitAccountListWithBalance() *AccountsList {
-	testAccList := &AccountsList{}
-	err := testAccList.Register("Kola", AccountNormal)
-	err = testAccList.AddBalance("Kola", 102.21)
+func InitAccountListWithBalance() AccountsList {
+	AccountsListMain = AccountsList{}
+	err := AccountsListMain.Register("Kola", AccountNormal)
+	err = AccountsListMain.AddBalance("Kola", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Vasiy", AccountNormal)
-	err = testAccList.AddBalance("Vasiy", 102.21)
+	err = AccountsListMain.Register("Vasiy", AccountNormal)
+	err = AccountsListMain.AddBalance("Vasiy", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Dram", AccountPremium)
-	err = testAccList.AddBalance("Dram", 102.21)
+	err = AccountsListMain.Register("Dram", AccountPremium)
+	err = AccountsListMain.AddBalance("Dram", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Vortis", AccountPremium)
-	err = testAccList.AddBalance("Vortis", 102.21)
+	err = AccountsListMain.Register("Vortis", AccountPremium)
+	err = AccountsListMain.AddBalance("Vortis", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
 	for i := 0; i < 1000; i++ {
 		s := fmt.Sprintf("User%d", i)
-		err = testAccList.Register(s, AccountNormal)
-		err = testAccList.AddBalance(s, 100.23)
+		err = AccountsListMain.Register(s, AccountNormal)
+		err = AccountsListMain.AddBalance(s, 100.23)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	return testAccList
+	return AccountsListMain
 }
 
-func InitAccountListWithWrongBalance() *AccountsList {
-	testAccList := &AccountsList{}
-	err := testAccList.Register("Kola", AccountNormal)
-	err = testAccList.AddBalance("Kola", 102.21)
+func InitAccountListWithWrongBalance() AccountsList {
+	AccountsListMain = AccountsList{}
+	err := AccountsListMain.Register("Kola", AccountNormal)
+	err = AccountsListMain.AddBalance("Kola", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Vasiy", AccountNormal)
+	err = AccountsListMain.Register("Vasiy", AccountNormal)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Dram", AccountPremium)
-	err = testAccList.AddBalance("Dram", 102.21)
+	err = AccountsListMain.Register("Dram", AccountPremium)
+	err = AccountsListMain.AddBalance("Dram", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = testAccList.Register("Vortis", AccountPremium)
+	err = AccountsListMain.Register("Vortis", AccountPremium)
 	if err != nil {
 		fmt.Println(err)
 	}
 	for i := 0; i < 100; i++ {
 		s := fmt.Sprintf("User%d", i)
-		err = testAccList.Register(s, AccountNormal)
-		err = testAccList.AddBalance(s, 100.23)
+		err = AccountsListMain.Register(s, AccountNormal)
+		err = AccountsListMain.AddBalance(s, 100.23)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	return testAccList
+	return AccountsListMain
 }
 
 func TestExportAccountsCSV(t *testing.T) {
@@ -84,7 +84,6 @@ func TestExportAccountsCSV(t *testing.T) {
 		return
 	}()
 	wg.Wait()
-	fmt.Println("-------чтение --------")
 	r := csv.NewReader(bytes.NewReader(exp))
 	records, err := r.ReadAll()
 	if err != nil {
@@ -93,7 +92,6 @@ func TestExportAccountsCSV(t *testing.T) {
 	if len(records) <= 0 {
 		t.Fatalf("Импорт не исполнен \n")
 	}
-
 }
 
 func TestImportAccountsCSV(t *testing.T) {
@@ -108,7 +106,7 @@ func TestImportAccountsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
-	accountList := accountsListMain
+	accountList := AccountsListMain
 	// удалим справочник
 	for k := range accountList {
 		delete((accountList), k)
@@ -142,7 +140,7 @@ func TestWrongBalanceImportAccountsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
-	accountList := accountsListMain
+	accountList := AccountsListMain
 	// удалим справочник
 	for k := range accountList {
 		delete((accountList), k)
@@ -157,11 +155,11 @@ func TestWrongBalanceImportAccountsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 	if err == nil {
-		t.Fatalf(" Портировали Vasiy и Vortis с нулевым балансом \n")
+		t.Fatalf(" %s \n", err)
 	}
 }
 
-func TestExportProdcuctsCSV(_ *testing.T) {
+func TestExportProdcuctsCSV(t *testing.T) {
 	_ = InitProductCatalog()
 	exp := []byte{}
 	var wg sync.WaitGroup
@@ -172,7 +170,9 @@ func TestExportProdcuctsCSV(_ *testing.T) {
 		return
 	}()
 	wg.Wait()
-	fmt.Printf("%v", exp)
+	if len(exp) == 0 {
+		t.Fatalf(" ошибка -- кол-во экспорт. записей %d\n", len(exp))
+	}
 }
 
 func TestImportProductsCSV(t *testing.T) {
@@ -187,8 +187,9 @@ func TestImportProductsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
-	products := productListMain
+	products := ProductListMain
 	// удалим справочник
+	before_len_records := len(products)
 	for k := range products {
 		delete((products), k)
 	}
@@ -201,26 +202,28 @@ func TestImportProductsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 	globalMutex.Lock()
-	records := productListMain
+	records := ProductListMain
 	globalMutex.Unlock()
 
 	len_records := len(records)
-	if len_records != 10012 {
-		t.Fatalf("Импорт не исполнен = %d \n", len_records)
+	if len_records != before_len_records {
+		t.Fatalf("Импорт не исполнен %d <> %d \n", len_records, before_len_records)
 	}
 
 }
 
-func InitWrongProductCatalog() *ProductsList {
-	lproductList := &ProductsList{}
+func InitWrongProductCatalog() ProductsList {
+	ProductListMain = ProductsList{}
 	for i := 0; i < 10000; i++ {
-		err := lproductList.AddProduct(fmt.Sprintf("Продукт %d", i), Product{Price: 10.51, Type: ProductNormal})
+		err := ProductListMain.AddProduct(fmt.Sprintf("Продукт %d", i), Product{Price: 10.51, Type: ProductNormal})
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
 	}
-	(*lproductList)["XXXXX"] = &Product{Price: -1, Type: ProductNormal}
-	return lproductList
+	ProductListMain["XXXXX"] = &Product{Price: -1, Type: ProductNormal}
+	ProductListMain["XXXX1"] = &Product{Price: 0, Type: ProductNormal}
+	ProductListMain["XXXXX2"] = &Product{Price: -10, Type: ProductNormal}
+	return ProductListMain
 }
 
 func TestWrongDataImportProductsCSV(t *testing.T) {
@@ -235,13 +238,12 @@ func TestWrongDataImportProductsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
-	products := productListMain
+	products := ProductListMain
 	// удалим справочник
 	for k := range products {
 		delete((products), k)
 	}
 	// закачаем по новой
-
 	wg.Add(1)
 	err := errors.New("")
 	go func() {
@@ -249,9 +251,7 @@ func TestWrongDataImportProductsCSV(t *testing.T) {
 		err = ImportProductsCSV(exp)
 	}()
 	wg.Wait()
-
 	if err == nil {
-		t.Fatalf(" Портировали продукт XXXX с отрицательной ценой \n")
+		t.Fatalf(" Портировали продукты XXXX... с неверными данными \n")
 	}
-
 }

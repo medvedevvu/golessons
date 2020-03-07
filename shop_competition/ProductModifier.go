@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	productListMain = ProductsList{}
+	ProductListMain = ProductsList{}
 	globalMutex     sync.Mutex
 )
 

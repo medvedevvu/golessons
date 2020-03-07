@@ -9,7 +9,7 @@ import (
 )
 
 //  справочник аккаунтов
-var accountsListMain = AccountsList{}
+var AccountsListMain = AccountsList{}
 
 // Register - регистрация пользователя
 func (accountsList *AccountsList) Register(username string, accounttype AccountType) error {
@@ -156,9 +156,9 @@ func (accountsList *AccountsList) Balance(username string) (float32, error) {
 
 	go func() {
 		defer close(done)
+		globalMutex.Lock()
 		acc, ok := (*accountsList)[username]
 		accBalance := acc.Balance
-		globalMutex.Lock()
 		if !ok {
 			vmsg <- vmsgType{balance: 0,
 				errmsg: fmt.Sprintf("Пользователь %s не найден", username)}
