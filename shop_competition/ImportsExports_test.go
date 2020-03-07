@@ -189,8 +189,8 @@ func TestImportProductsCSV(t *testing.T) {
 
 	products := productListMain
 	// удалим справочник
-	for k := range *products {
-		delete((*products), k)
+	for k := range products {
+		delete((products), k)
 	}
 	// закачаем по новой
 
@@ -204,7 +204,7 @@ func TestImportProductsCSV(t *testing.T) {
 	records := productListMain
 	globalMutex.Unlock()
 
-	len_records := len(*records)
+	len_records := len(records)
 	if len_records != 10012 {
 		t.Fatalf("Импорт не исполнен = %d \n", len_records)
 	}
@@ -237,8 +237,8 @@ func TestWrongDataImportProductsCSV(t *testing.T) {
 
 	products := productListMain
 	// удалим справочник
-	for k := range *products {
-		delete((*products), k)
+	for k := range products {
+		delete((products), k)
 	}
 	// закачаем по новой
 

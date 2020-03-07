@@ -78,7 +78,7 @@ Loop:
 			globalMutex.Lock()
 			productsList := productListMain
 			for key, val := range result {
-				(*productsList)[key] = val
+				(productsList)[key] = val
 			}
 			globalMutex.Unlock()
 			break Loop
@@ -96,7 +96,7 @@ func ExportProdcuctsCSV() []byte {
 	productList := productListMain
 	globalMutex.Unlock()
 	productListSlice := []map[string]*Product{}
-	for name, elem := range *productList {
+	for name, elem := range productList {
 		productListSlice = append(
 			productListSlice,
 			map[string]*Product{name: &Product{Price: elem.Price, Type: elem.Type}})

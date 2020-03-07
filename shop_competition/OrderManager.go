@@ -28,14 +28,14 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 			}
 			var productPrice float32
 			for _, productName := range order.ProductsName {
-				vdiscount := getDiscount(vuser.AccountType, (*vproductsList)[productName].Type)
-				productPrice += (*vproductsList)[productName].Price * vdiscount
+				vdiscount := getDiscount(vuser.AccountType, (vproductsList)[productName].Type)
+				productPrice += (vproductsList)[productName].Price * vdiscount
 			}
 			var bundlePrice float32
 			for _, bundleName := range order.BundlesName {
 				vboundl := (*vboundlesList)[bundleName]
 				for _, productName := range vboundl.ProductsName {
-					bundlePrice += (*vproductsList)[productName].Price * vboundl.Discount
+					bundlePrice += (vproductsList)[productName].Price * vboundl.Discount
 				}
 			}
 

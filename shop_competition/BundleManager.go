@@ -88,7 +88,7 @@ func (bundlesList *BundlesList) AddBundle(name string,
 		}
 		globalMutex.Lock()
 		vproductList := productListMain // получить каталог товаров
-		product, ok := (*vproductList)[main]
+		product, ok := (vproductList)[main]
 		globalMutex.Unlock()
 		if !ok {
 			result <- fmt.Errorf("товар %s не найден в каталоге товаров", name)
@@ -105,7 +105,7 @@ func (bundlesList *BundlesList) AddBundle(name string,
 		additional = append(additional, main)
 		countSample := 0
 		for _, item := range additional {
-			if (*vproductList)[item].Type == ProductSample {
+			if (vproductList)[item].Type == ProductSample {
 				countSample++ // посчитаем ProductSample
 			}
 		}

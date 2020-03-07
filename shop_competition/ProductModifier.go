@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	productListMain = &ProductsList{}
+	productListMain = ProductsList{}
 	globalMutex     sync.Mutex
 )
 
@@ -50,35 +50,28 @@ func (productsList *ProductsList) AddProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
 
-	mthread := func() chan string {
-		lchan := make(chan string)
-		done := make(chan struct{})
-		go func() {
-			defer close(done)
-			err := productsList.CheckAttrsOfProduct(productName, product, Add)
-			if err != nil {
-				lchan <- fmt.Sprintf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
-				return
-			}
-			globalMutex.Lock()
-			(*productsList)[productName] = &product
-			globalMutex.Unlock()
-			lchan <- ""
+	lchan := make(chan error)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		err := productsList.CheckAttrsOfProduct(productName, product, Add)
+		if err != nil {
+			lchan <- fmt.Errorf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
 			return
-		}()
-		return lchan
-	}
-	res := mthread()
-
-	select {
-	case localmess := <-res:
-		if localmess == "" {
-			return nil
-		} else {
-			return errors.New(localmess)
 		}
-	case <-timer.C:
-		return errors.New("Превышен интервал ожидания")
+		globalMutex.Lock()
+		(*productsList)[productName] = &product
+		globalMutex.Unlock()
+		lchan <- nil
+		return
+	}()
+	for {
+		select {
+		case localmess := <-lchan:
+			return localmess
+		case <-timer.C:
+			return errors.New("Превышен интервал ожидания")
+		}
 	}
 
 }
@@ -88,69 +81,59 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
 
-	mthread := func() chan string {
-		lchan := make(chan string)
-		done := make(chan struct{})
-		go func() {
-			defer close(done)
-			err := productsList.CheckAttrsOfProduct(productName, product, Edit)
-			if err != nil {
-				lchan <- fmt.Sprintf("Изменение : ошибка проверки аттрибутов  товара %s", err)
-				return
-			}
-			globalMutex.Lock()
-			(*productsList)[productName] = &product
-			globalMutex.Unlock()
-			lchan <- ""
+	lchan := make(chan error)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		err := productsList.CheckAttrsOfProduct(productName, product, Edit)
+		if err != nil {
+			lchan <- fmt.Errorf("Изменение : ошибка проверки аттрибутов  товара %s", err)
 			return
-		}()
-		return lchan
-	}
-	res := mthread()
-
-	select {
-	case localmess := <-res:
-		if localmess == "" {
-			return nil
-		} else {
-			return errors.New(localmess)
 		}
-	case <-timer.C:
-		return errors.New("Превышен интервал ожидания")
+		globalMutex.Lock()
+		(*productsList)[productName] = &product
+		globalMutex.Unlock()
+		lchan <- nil
+		return
+	}()
+
+	for {
+		select {
+		case localmess := <-lchan:
+			return localmess
+		case <-timer.C:
+			return errors.New("Превышен интервал ожидания")
+		}
 	}
+
 }
 
 // RemoveProduct удаляем товар из каталога
 func (productsList *ProductsList) RemoveProduct(productName string) error {
 	timer := time.NewTimer(time.Second)
-
-	mthread := func() chan string {
-		lchan := make(chan string)
-		done := make(chan struct{})
-		go func() {
-			defer close(done)
-			_, ok := (*productsList)[productName]
-			if !ok {
-				lchan <- fmt.Sprintf("Удаление: продукта %s нет в каталоге", productName)
-				return
-			}
-			globalMutex.Lock()
-			delete(*productsList, productName)
-			globalMutex.Unlock()
-			lchan <- ""
+	lchan := make(chan error)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		globalMutex.Lock()
+		_, ok := (*productsList)[productName]
+		globalMutex.Unlock()
+		if !ok {
+			lchan <- fmt.Errorf("Удаление: продукта %s нет в каталоге", productName)
 			return
-		}()
-		return lchan
-	}
-	res := mthread()
-	select {
-	case localmess := <-res:
-		if localmess == "" {
-			return nil
-		} else {
-			return errors.New(localmess)
 		}
-	case <-timer.C:
-		return errors.New("Превышен интервал ожидания")
+		globalMutex.Lock()
+		delete(*productsList, productName)
+		globalMutex.Unlock()
+		lchan <- nil
+		return
+	}()
+	for {
+		select {
+		case localmess := <-lchan:
+			return localmess
+		case <-timer.C:
+			return errors.New("Превышен интервал ожидания")
+		}
 	}
 }
