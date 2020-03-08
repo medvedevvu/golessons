@@ -50,25 +50,25 @@ func (productsList *ProductsList) AddProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
 
-	lchan := make(chan error)
+	errorChan := make(chan error)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		err := productsList.CheckAttrsOfProduct(productName, product, Add)
 		if err != nil {
-			lchan <- fmt.Errorf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
+			errorChan <- fmt.Errorf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
 			return
 		}
 		globalMutex.Lock()
 		(*productsList)[productName] = &product
 		globalMutex.Unlock()
-		lchan <- nil
+		errorChan <- nil
 		return
 	}()
 	for {
 		select {
-		case localmess := <-lchan:
-			return localmess
+		case errorMsg := <-errorChan:
+			return errorMsg
 		case <-timer.C:
 			return errors.New("Превышен интервал ожидания")
 		}
@@ -81,26 +81,26 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
 
-	lchan := make(chan error)
+	errorChan := make(chan error)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		err := productsList.CheckAttrsOfProduct(productName, product, Edit)
 		if err != nil {
-			lchan <- fmt.Errorf("Изменение : ошибка проверки аттрибутов  товара %s", err)
+			errorChan <- fmt.Errorf("Изменение : ошибка проверки аттрибутов  товара %s", err)
 			return
 		}
 		globalMutex.Lock()
 		(*productsList)[productName] = &product
 		globalMutex.Unlock()
-		lchan <- nil
+		errorChan <- nil
 		return
 	}()
 
 	for {
 		select {
-		case localmess := <-lchan:
-			return localmess
+		case errorMsg := <-errorChan:
+			return errorMsg
 		case <-timer.C:
 			return errors.New("Превышен интервал ожидания")
 		}
@@ -111,7 +111,7 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 // RemoveProduct удаляем товар из каталога
 func (productsList *ProductsList) RemoveProduct(productName string) error {
 	timer := time.NewTimer(time.Second)
-	lchan := make(chan error)
+	errorChan := make(chan error)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -119,19 +119,19 @@ func (productsList *ProductsList) RemoveProduct(productName string) error {
 		_, ok := (*productsList)[productName]
 		globalMutex.Unlock()
 		if !ok {
-			lchan <- fmt.Errorf("Удаление: продукта %s нет в каталоге", productName)
+			errorChan <- fmt.Errorf("Удаление: продукта %s нет в каталоге", productName)
 			return
 		}
 		globalMutex.Lock()
 		delete(*productsList, productName)
 		globalMutex.Unlock()
-		lchan <- nil
+		errorChan <- nil
 		return
 	}()
 	for {
 		select {
-		case localmess := <-lchan:
-			return localmess
+		case errorMsg := <-errorChan:
+			return errorMsg
 		case <-timer.C:
 			return errors.New("Превышен интервал ожидания")
 		}

@@ -123,7 +123,7 @@ func TestAddMinusBalance(t *testing.T) {
 	}
 }
 
-func TestSetBalance(t *testing.T) {
+func TestAddBalance(t *testing.T) {
 	var wg sync.WaitGroup
 	vtest := AccountsList{}
 	vtest.Register("Ada", AccountPremium)
@@ -135,7 +135,8 @@ func TestSetBalance(t *testing.T) {
 	names := map[string]float32{"Ada": 1111.12,
 		"Vasiy": 2222.21, "Boris": 3333, "Gladis": 5555,
 		"Fargus": 4444, "Wilams": 555.32}
-	var delta float32 = 950
+	var delta float32 = 50
+	var Bigdelta float32 = 950
 	wg.Add(len(names))
 	for key, vals := range names {
 		go func(key string, vals float32) {
@@ -154,11 +155,19 @@ func TestSetBalance(t *testing.T) {
 		vtestBefore[x] = &xvalue
 	}
 	// добавим дельту
-	wg.Add(len(names))
+	wg.Add(2 * len(names))
 	for idx := range vtest {
 		go func(idx string, delta float32) {
 			defer wg.Done()
-			err := vtest.AddBalance(idx, delta)
+			err := vtest.AddBalance(idx, delta) // маленькую
+			if err != nil {
+				t.Fatalf("%v\n", err)
+			}
+		}(idx, delta)
+
+		go func(idx string, delta float32) {
+			defer wg.Done()
+			err := vtest.AddBalance(idx, Bigdelta) // большую
 			if err != nil {
 				t.Fatalf("%v\n", err)
 			}
@@ -171,7 +180,7 @@ func TestSetBalance(t *testing.T) {
 		before := vtestBefore[idx].Balance
 		a := after * 100
 		b := before * 100
-		d := delta * 100
+		d := (Bigdelta + delta) * 100
 		r := math.Round(float64(a) - float64(b))
 		if r != float64(d) {
 			t.Fatalf("%s %v - %v == %v  \n", idx, after, before, delta)

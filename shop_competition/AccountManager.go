@@ -53,53 +53,6 @@ func (accountsList *AccountsList) Register(username string, accounttype AccountT
 	return nil
 }
 
-// OLDRegister1 - регистрация пользователя старая весрия
-func (accountsList *AccountsList) OLDRegister1(username string, accounttype AccountType) error {
-	done := make(chan struct{})
-	errmsg := make(chan string, 1)
-	go func() {
-		defer close(done)
-		func() {
-			if len(strings.Trim(username, "")) == 0 {
-				errmsg <- fmt.Sprintf("username %s пустое ", username)
-				return
-			}
-			globalMutex.Lock()
-			_, ok := (*accountsList)[username]
-			if ok {
-				globalMutex.Unlock()
-				errmsg <- fmt.Sprintf("такой пользователь %s уже есть ", username)
-				return
-			}
-			(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
-			globalMutex.Unlock()
-			errmsg <- ""
-			return
-		}()
-	}()
-	lerrm := ""
-	select {
-	case <-done:
-		_, opend := <-errmsg
-		if opend {
-			close(errmsg)
-		}
-		for errm := range errmsg {
-			if errm != "" {
-				lerrm = errm
-			}
-		}
-	case <-time.After(time.Second):
-		lerrm = "Превышен интервал ожидания"
-	}
-
-	if lerrm != "" {
-		return errors.New(lerrm)
-	} else {
-		return nil
-	}
-}
-
 // AddBalance - добавим баланс
 func (accountsList *AccountsList) AddBalance(username string,
 	sum float32) error {

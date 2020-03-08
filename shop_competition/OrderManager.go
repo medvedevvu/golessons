@@ -16,7 +16,7 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 	vproductsList := ProductListMain
 	vboundlesList := BundlesListMain
 
-	lchan := make(chan error)
+	errorChan := make(chan error)
 	done := make(chan struct{})
 
 	go func() {
@@ -24,7 +24,7 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 		globalMutex.Lock()
 		vuser, ok := vaccountsList[username]
 		if !ok {
-			lchan <- fmt.Errorf(" пользователь %s не регистрирован", username)
+			errorChan <- fmt.Errorf(" пользователь %s не регистрирован", username)
 			globalMutex.Unlock()
 			return
 		}
@@ -46,7 +46,7 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 		order.TotalOrderPrice = bundlePrice + productPrice
 
 		if (vuser.Balance - order.TotalOrderPrice) <= 0 {
-			lchan <- fmt.Errorf(" %s : остаток %f - списание %f = %f - мало на счету",
+			errorChan <- fmt.Errorf(" %s : остаток %f - списание %f = %f - мало на счету",
 				username,
 				vuser.Balance,
 				order.TotalOrderPrice,
@@ -58,14 +58,14 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 		// запишем в историю списаний
 		(*accountsOrders)[username] = append((*accountsOrders)[username], order)
 		globalMutex.Unlock()
-		lchan <- nil
+		errorChan <- nil
 		return
 	}()
 
 	for {
 		select {
-		case localerr := <-lchan:
-			return localerr
+		case errorMsg := <-errorChan:
+			return errorMsg
 		case <-timer.C:
 			return errors.New("Превышен интервал ожидания")
 		default:

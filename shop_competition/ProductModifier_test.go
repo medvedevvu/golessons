@@ -7,6 +7,60 @@ import (
 	"time"
 )
 
+func InitSmallProductCatalog() ProductsList {
+	ProductListMain = ProductsList{}
+	err := ProductListMain.AddProduct("колбаса", Product{Price: 125.23, Type: ProductNormal})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("водка", Product{Price: 400.23, Type: ProductNormal})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+
+	err = ProductListMain.AddProduct("сыр", Product{Price: 315.14, Type: ProductPremium})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("макароны", Product{Price: 47.14, Type: ProductNormal})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("зубочистка", Product{Price: 0.00, Type: ProductSample})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("вермишель", Product{Price: 11.20, Type: ProductNormal})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("хлеб", Product{Price: 32.10, Type: ProductNormal})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("цветы", Product{Price: 700.10, Type: ProductPremium})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("шампанское", Product{Price: 150.10, Type: ProductNormal})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("шоколад", Product{Price: 478.21, Type: ProductPremium})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("духи", Product{Price: 900.51, Type: ProductPremium})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	err = ProductListMain.AddProduct("спички", Product{Price: 22.51, Type: ProductNormal})
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	return ProductListMain
+}
+
 func InitProductCatalog() ProductsList {
 	ProductListMain = ProductsList{}
 	err := ProductListMain.AddProduct("колбаса", Product{Price: 125.23, Type: ProductNormal})
@@ -129,51 +183,40 @@ func TestAddProduct(t *testing.T) {
 	}
 }
 func TestAddProductsWithWrongValues(t *testing.T) {
-	vproductList := InitProductCatalog()
+	vproductList := InitSmallProductCatalog()
+	type ProductDataType struct {
+		Name         string
+		ProductPrice float32
+		ProductType  ProductType
+		ErrMessage   string
+	}
+
+	type ProductDataArrayType []ProductDataType
+
+	vproductData := ProductDataArrayType{
+		{"спички", 10.10, ProductSample, "Добавлен пробник с не нулевой стоимостью"},
+		{"зажигалка", -100.14, ProductPremium, "добавлен продукт с отрицательной стоимостью"},
+		{"пепельница", 0, ProductPremium, "добавлен продукт с нулевой стоимостью"},
+		{"сыр", 315.14, ProductSample, "добавлен одноименный продукт"},
+		{"куркума", 0, ProductNormal, "добавлен продукт с нулевой стоимостью"},
+	}
 
 	var wg sync.WaitGroup
-	var times_ int = 5
-	wg.Add(times_)
+	wg.Add(len(vproductData))
 
-	go func() {
-		defer wg.Done()
-
-		err := vproductList.AddProduct("спички", Product{Price: 10.10, Type: ProductSample})
-		if err == nil {
-			t.Fatalf("Добавлен пробник с не нулевой стоимостью ")
-		}
-
-	}()
-	go func() {
-		defer wg.Done()
-		err := vproductList.AddProduct("зажигалка", Product{Price: -100.10, Type: ProductPremium})
-		if err == nil {
-			t.Fatalf(" добавлен продукт с отрицательной стоимостью ")
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		err := vproductList.AddProduct("зажигалка", Product{Price: 0.0, Type: ProductPremium})
-		if err == nil {
-			t.Fatalf(" добавлен продукт с нулевой стоимостью ")
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		err := vproductList.AddProduct("сыр", Product{Price: 315.14, Type: ProductPremium})
-		if err == nil {
-			t.Fatalf(" добавлен одноименный продукт ")
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		err := vproductList.AddProduct("куркума", Product{Price: 215.14, Type: ProductPremium})
-		if err != nil {
-			t.Fatalf(" не добавлен нормальный продукт %s \n", err)
-		}
-	}()
+	for _, product := range vproductData {
+		go func(product ProductDataType) {
+			defer wg.Done()
+			err := vproductList.AddProduct(product.Name,
+				Product{Price: product.ProductPrice,
+					Type: product.ProductType},
+			)
+			if err == nil {
+				t.Fatalf(product.ErrMessage)
+			}
+		}(product)
+	}
 	wg.Wait()
-
 }
 
 func TestOptModifyProducts(t *testing.T) {
