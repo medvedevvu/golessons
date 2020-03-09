@@ -126,7 +126,7 @@ func ExportAccountsCSVHelper(
 func ImportAccountsCSVHelper(
 	ctx context.Context,
 	accountList [][]string,
-	res chan *AccountsList,
+	res chan AccountsList,
 	done chan struct{},
 	errCh chan error) {
 
@@ -141,7 +141,7 @@ func ImportAccountsCSVHelper(
 		}
 		return
 	}()
-	tempAccountList := &AccountsList{}
+	tempAccountList := AccountsList{}
 	for _, rec := range accountList {
 		name := rec[0] // name
 		intval, err := strconv.Atoi(rec[2])

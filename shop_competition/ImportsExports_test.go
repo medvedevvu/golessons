@@ -90,7 +90,7 @@ func TestExportAccountsCSV(t *testing.T) {
 		panic(err)
 	}
 	if len(records) <= 0 {
-		t.Fatalf("Импорт не исполнен \n")
+		t.Fatalf("Экспорт не исполнен \n")
 	}
 }
 
