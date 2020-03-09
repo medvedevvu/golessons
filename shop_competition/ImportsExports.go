@@ -23,7 +23,7 @@ func ImportProductsCSV(data []byte) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	res := make(chan *ProductsList, pages)
+	res := make(chan ProductsList, pages)
 	done := make(chan struct{}, pages)
 	errCh := make(chan error, pages)
 
@@ -52,7 +52,7 @@ Loop:
 	for {
 		select {
 		case res1 := <-res:
-			for key, val := range *res1 {
+			for key, val := range res1 {
 				result[key] = val
 			}
 		loop:
@@ -69,7 +69,7 @@ Loop:
 			}
 			for i := 0; i < len(done)-1; i++ {
 				res1 := <-res
-				for key, val := range *res1 {
+				for key, val := range res1 {
 					result[key] = val
 				}
 			}
