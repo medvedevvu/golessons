@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 func InitAccountListWithBalance() AccountsList {
@@ -194,11 +195,23 @@ func TestImportProductsCSV(t *testing.T) {
 		delete((products), k)
 	}
 	// закачаем по новой
+	stopCh := make(chan struct{}, 1)
+	wg.Add(2)
 
-	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		ImportProductsCSV(exp)
+		time.Sleep(time.Millisecond * 100)
+		fmt.Println("Before")
+		stopCh <- struct{}{}
+		fmt.Println("After")
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := ImportProductsCSV(exp, stopCh)
+		if err != nil {
+			t.Logf("%s\n", err)
+		}
 	}()
 	wg.Wait()
 	globalMutex.Lock()
@@ -244,11 +257,12 @@ func TestWrongDataImportProductsCSV(t *testing.T) {
 		delete((products), k)
 	}
 	// закачаем по новой
+	stopCh := make(chan struct{})
 	wg.Add(1)
 	err := errors.New("")
 	go func() {
 		defer wg.Done()
-		err = ImportProductsCSV(exp)
+		err = ImportProductsCSV(exp, stopCh)
 	}()
 	wg.Wait()
 	if err == nil {

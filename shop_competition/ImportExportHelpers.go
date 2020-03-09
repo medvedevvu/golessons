@@ -12,7 +12,7 @@ import (
 func ImportProductsCSVHelper(
 	ctx context.Context,
 	productList [][]string,
-	res chan *ProductsList,
+	res chan ProductsList,
 	done chan struct{},
 	errCh chan error) {
 	defer func() {
@@ -26,8 +26,9 @@ func ImportProductsCSVHelper(
 		}
 		return
 	}()
-	tempProductList := &ProductsList{}
+	tempProductList := ProductsList{}
 	for _, rec := range productList {
+		// checkpoint_1
 		name := rec[0] // name
 		value, err := strconv.ParseFloat(rec[1], 32)
 		if err != nil {
