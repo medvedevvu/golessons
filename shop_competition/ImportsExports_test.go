@@ -201,9 +201,7 @@ func TestImportProductsCSV(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		time.Sleep(time.Millisecond * 100)
-		fmt.Println("Before")
 		stopCh <- struct{}{}
-		fmt.Println("After")
 	}()
 
 	go func() {
@@ -220,7 +218,9 @@ func TestImportProductsCSV(t *testing.T) {
 
 	len_records := len(records)
 	if len_records != before_len_records {
-		t.Fatalf("Импорт не исполнен %d <> %d \n", len_records, before_len_records)
+		t.Logf("Импорт не исполнен %d <> %d \n", len_records, before_len_records)
+	} else {
+		t.Fatalf("не выполнена отмена импорта ")
 	}
 
 }
