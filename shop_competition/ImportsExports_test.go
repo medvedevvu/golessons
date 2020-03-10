@@ -32,7 +32,7 @@ func InitAccountListWithBalance() AccountsList {
 	if err != nil {
 		fmt.Println(err)
 	}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10000; i++ {
 		s := fmt.Sprintf("User%d", i)
 		err = AccountsListMain.Register(s, AccountNormal)
 		err = AccountsListMain.AddBalance(s, 100.23)
@@ -107,26 +107,47 @@ func TestImportAccountsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
+	globalMutex.Lock()
 	accountList := AccountsListMain
+	before_len_records := len(accountList)
+	globalMutex.Unlock()
+
 	// удалим справочник
 	for k := range accountList {
 		delete((accountList), k)
 	}
 	// закачаем по новой
-	wg.Add(1)
+	stopCh := make(chan struct{}, 1)
 	err := errors.New("")
+	wg.Add(2)
+
 	go func() {
 		defer wg.Done()
-		err = ImportAccountsCSV(exp)
+		time.Sleep(time.Millisecond * 100)
+		stopCh <- struct{}{}
+	}()
+
+	go func() {
+		defer wg.Done()
+		err = ImportAccountsCSV(exp, stopCh)
 		return
 	}()
 	wg.Wait()
 	if err != nil {
-		t.Fatalf("%s\n", err)
+		t.Logf("%s\n", err)
 	}
-	if len(accountList) <= 0 {
-		t.Fatal()
+
+	globalMutex.Lock()
+	records := AccountsListMain
+	len_records := len(records)
+	globalMutex.Unlock()
+
+	if len_records != before_len_records {
+		t.Logf("Импорт не исполнен %d <> %d \n", len_records, before_len_records)
+	} else {
+		t.Fatalf("не выполнена отмена импорта ")
 	}
+
 }
 
 func TestWrongBalanceImportAccountsCSV(t *testing.T) {
@@ -148,10 +169,11 @@ func TestWrongBalanceImportAccountsCSV(t *testing.T) {
 	}
 	// закачаем по новой
 	wg.Add(1)
+	stopCh := make(chan struct{}, 1)
 	err := errors.New("")
 	go func() {
 		defer wg.Done()
-		err = ImportAccountsCSV(exp)
+		err = ImportAccountsCSV(exp, stopCh)
 		return
 	}()
 	wg.Wait()
@@ -188,9 +210,12 @@ func TestImportProductsCSV(t *testing.T) {
 	}()
 	wg.Wait()
 
+	globalMutex.Lock()
 	products := ProductListMain
-	// удалим справочник
 	before_len_records := len(products)
+	globalMutex.Unlock()
+
+	// удалим справочник
 	for k := range products {
 		delete((products), k)
 	}
@@ -214,9 +239,9 @@ func TestImportProductsCSV(t *testing.T) {
 	wg.Wait()
 	globalMutex.Lock()
 	records := ProductListMain
+	len_records := len(records)
 	globalMutex.Unlock()
 
-	len_records := len(records)
 	if len_records != before_len_records {
 		t.Logf("Импорт не исполнен %d <> %d \n", len_records, before_len_records)
 	} else {

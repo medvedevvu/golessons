@@ -31,9 +31,6 @@ func ImportProductsCSV(data []byte, stopCh chan struct{}) error {
 		records = append(records, rec)
 	}
 
-	//	if err != nil {
-	//		panic(err)
-	//	}
 	var page_size int = 1000 // 100
 	var pages int = int(len(records) / page_size)
 	var last_page_add int = int(math.Mod(float64(len(records)), float64(page_size)))
@@ -115,16 +112,14 @@ Loop:
 			cancel() // выключаю все горутины
 			return errMsg
 		case <-stopCh:
-			fmt.Println("<<<<>>>>>>")
 			cancel()
 			errCh <- fmt.Errorf("ImportProductsCSV отменен")
 			for key := range result {
 				delete(productsListSub, key) // прибить всех закаченных
 			}
-			fmt.Println("Прибили !")
 			return <-errCh
 		default:
-			fmt.Println(" default: ")
+			//			fmt.Println(" default: ")
 		}
 	}
 	return nil
@@ -272,12 +267,26 @@ Loop:
 }
 
 //ImportAccountsCSV
-func ImportAccountsCSV(data []byte) error {
+func ImportAccountsCSV(data []byte, stopCh chan struct{}) error {
 	r := csv.NewReader(bytes.NewReader(data))
-	records, err := r.ReadAll()
-	if err != nil {
-		panic(err)
+
+	records := [][]string{}
+	for {
+		select {
+		case <-stopCh:
+			return fmt.Errorf("ImportAccountsCSV отменен")
+		default:
+		}
+		rec, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf(" ошибка чтения массива вх.данных %s", err)
+		}
+		records = append(records, rec)
 	}
+
 	var page_size int = 100 // 100
 	var pages int = int(len(records) / page_size)
 	var last_page_add int = int(math.Mod(float64(len(records)), float64(page_size)))
@@ -310,6 +319,7 @@ func ImportAccountsCSV(data []byte) error {
 		}(ctx, last_page_add)
 	}
 	result := map[string]*Account{}
+	accountListSub := AccountsListMain
 Loop:
 	for {
 		select {
@@ -322,6 +332,9 @@ Loop:
 				if len(done) == pages {
 					break loop
 				}
+				if len(stopCh) == 1 {
+					continue Loop
+				}
 				select {
 				case errMsg := <-errCh:
 					cancel() // выключаю все горутины
@@ -332,21 +345,33 @@ Loop:
 			for i := 0; i < len(done)-1; i++ {
 				res1 := <-res
 				for key, val := range res1 {
+					if len(stopCh) == 1 {
+						continue Loop
+					}
 					result[key] = val
 				}
 			}
 			cancel() // выключаю все горутины
 			// все прочитались - добовляем в базовую коллекцию
 			globalMutex.Lock()
-			accountList := AccountsListMain
 			for key, val := range result {
-				(accountList)[key] = val
+				if len(stopCh) == 1 {
+					globalMutex.Unlock()
+					continue Loop
+				}
+				(accountListSub)[key] = val
 			}
 			globalMutex.Unlock()
 			break Loop
 		case errMsg := <-errCh:
 			cancel() // выключаю все горутины
 			return errMsg
+		case <-stopCh:
+			errCh <- fmt.Errorf("ImportAccountsCSV отменен")
+			for key := range result {
+				delete(accountListSub, key) // прибить всех закаченных
+			}
+			return <-errCh
 		}
 	}
 	return nil
