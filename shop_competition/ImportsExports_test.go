@@ -9,78 +9,77 @@ import (
 	"testing"
 )
 
-func InitAccountListWithBalance() AccountsList {
-	AccountsListMain = AccountsList{}
-	err := AccountsListMain.Register("Kola", AccountNormal)
-	err = AccountsListMain.AddBalance("Kola", 102.21)
+func InitAccountListWithBalance(envList *ShopBase) {
+	err := envList.AccountsListWithMutex.Register("Kola", AccountNormal)
+	err = envList.AccountsListWithMutex.AddBalance("Kola", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = AccountsListMain.Register("Vasiy", AccountNormal)
-	err = AccountsListMain.AddBalance("Vasiy", 102.21)
+	err = envList.AccountsListWithMutex.Register("Vasiy", AccountNormal)
+	err = envList.AccountsListWithMutex.AddBalance("Vasiy", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = AccountsListMain.Register("Dram", AccountPremium)
-	err = AccountsListMain.AddBalance("Dram", 102.21)
+	err = envList.AccountsListWithMutex.Register("Dram", AccountPremium)
+	err = envList.AccountsListWithMutex.AddBalance("Dram", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = AccountsListMain.Register("Vortis", AccountPremium)
-	err = AccountsListMain.AddBalance("Vortis", 102.21)
+	err = envList.AccountsListWithMutex.Register("Vortis", AccountPremium)
+	err = envList.AccountsListWithMutex.AddBalance("Vortis", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
 	for i := 0; i < 1000; i++ {
 		s := fmt.Sprintf("User%d", i)
-		err = AccountsListMain.Register(s, AccountNormal)
-		err = AccountsListMain.AddBalance(s, 100.23)
+		err = envList.AccountsListWithMutex.Register(s, AccountNormal)
+		err = envList.AccountsListWithMutex.AddBalance(s, 100.23)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	return AccountsListMain
 }
 
-func InitAccountListWithWrongBalance() AccountsList {
-	AccountsListMain = AccountsList{}
-	err := AccountsListMain.Register("Kola", AccountNormal)
-	err = AccountsListMain.AddBalance("Kola", 102.21)
+func InitAccountListWithWrongBalance(envList *ShopBase) {
+	err := envList.AccountsListWithMutex.Register("Kola", AccountNormal)
+	err = envList.AccountsListWithMutex.AddBalance("Kola", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = AccountsListMain.Register("Vasiy", AccountNormal)
+	err = envList.AccountsListWithMutex.Register("Vasiy", AccountNormal)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = AccountsListMain.Register("Dram", AccountPremium)
-	err = AccountsListMain.AddBalance("Dram", 102.21)
+	err = envList.AccountsListWithMutex.Register("Dram", AccountPremium)
+	err = envList.AccountsListWithMutex.AddBalance("Dram", 102.21)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = AccountsListMain.Register("Vortis", AccountPremium)
+	err = envList.AccountsListWithMutex.Register("Vortis", AccountPremium)
 	if err != nil {
 		fmt.Println(err)
 	}
 	for i := 0; i < 100; i++ {
 		s := fmt.Sprintf("User%d", i)
-		err = AccountsListMain.Register(s, AccountNormal)
-		err = AccountsListMain.AddBalance(s, 100.23)
+		err = envList.AccountsListWithMutex.Register(s, AccountNormal)
+		err = envList.AccountsListWithMutex.AddBalance(s, 100.23)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	return AccountsListMain
 }
 
 func TestExportAccountsCSV(t *testing.T) {
-	_ = InitAccountList()
+	shop := NewShopBase()
+	accList := shop.AccountsListWithMutex
+	InitAccountList(accList)
+
 	exp := []byte{}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportAccountsCSV()
+		exp = ExportAccountsCSV(shop)
 		return
 	}()
 	wg.Wait()
@@ -95,18 +94,19 @@ func TestExportAccountsCSV(t *testing.T) {
 }
 
 func TestImportAccountsCSV(t *testing.T) {
-	_ = InitAccountListWithBalance()
+	envList := NewShopBase()
+	InitAccountListWithBalance(envList)
 	exp := []byte{}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportAccountsCSV()
+		exp = ExportAccountsCSV(envList)
 		return
 	}()
 	wg.Wait()
 
-	accountList := AccountsListMain
+	accountList := envList.AccountsListWithMutex.Accounts
 	// удалим справочник
 	for k := range accountList {
 		delete((accountList), k)
@@ -116,7 +116,7 @@ func TestImportAccountsCSV(t *testing.T) {
 	err := errors.New("")
 	go func() {
 		defer wg.Done()
-		err = ImportAccountsCSV(exp)
+		err = ImportAccountsCSV(exp, envList)
 		return
 	}()
 	wg.Wait()
@@ -129,18 +129,19 @@ func TestImportAccountsCSV(t *testing.T) {
 }
 
 func TestWrongBalanceImportAccountsCSV(t *testing.T) {
-	_ = InitAccountListWithWrongBalance()
+	envList := NewShopBase()
+	InitAccountListWithWrongBalance(envList)
 	exp := []byte{}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportAccountsCSV()
+		exp = ExportAccountsCSV(envList)
 		return
 	}()
 	wg.Wait()
 
-	accountList := AccountsListMain
+	accountList := envList.AccountsListWithMutex.Accounts
 	// удалим справочник
 	for k := range accountList {
 		delete((accountList), k)
@@ -150,7 +151,7 @@ func TestWrongBalanceImportAccountsCSV(t *testing.T) {
 	err := errors.New("")
 	go func() {
 		defer wg.Done()
-		err = ImportAccountsCSV(exp)
+		err = ImportAccountsCSV(exp, envList)
 		return
 	}()
 	wg.Wait()
@@ -160,13 +161,16 @@ func TestWrongBalanceImportAccountsCSV(t *testing.T) {
 }
 
 func TestExportProdcuctsCSV(t *testing.T) {
-	_ = InitProductCatalog()
+	shop := NewShopBase()
+	vals := shop.ProductListWithMutex
+	InitProductCatalog(vals)
+
 	exp := []byte{}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportProdcuctsCSV()
+		exp = ExportProdcuctsCSV(shop)
 		return
 	}()
 	wg.Wait()
@@ -176,69 +180,70 @@ func TestExportProdcuctsCSV(t *testing.T) {
 }
 
 func TestImportProductsCSV(t *testing.T) {
-	_ = InitProductCatalog()
+	shop := NewShopBase()
+	vals := shop.ProductListWithMutex
+	InitProductCatalog(vals)
+
 	exp := []byte{}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportProdcuctsCSV()
+		exp = ExportProdcuctsCSV(shop)
 		return
 	}()
 	wg.Wait()
 
-	products := ProductListMain
+	products := shop.ProductListWithMutex.Products
 	// удалим справочник
 	before_len_records := len(products)
 	for k := range products {
 		delete((products), k)
 	}
 	// закачаем по новой
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		ImportProductsCSV(exp)
+		ImportProductsCSV(exp, shop)
 	}()
 	wg.Wait()
-	globalMutex.Lock()
-	records := ProductListMain
-	globalMutex.Unlock()
-
+	shop.Lock()
+	records := shop.ProductListWithMutex.Products
 	len_records := len(records)
+	shop.Unlock()
+
 	if len_records != before_len_records {
 		t.Fatalf("Импорт не исполнен %d <> %d \n", len_records, before_len_records)
 	}
 
 }
 
-func InitWrongProductCatalog() ProductsList {
-	ProductListMain = ProductsList{}
+func InitWrongProductCatalog(envLst *ShopBase) {
 	for i := 0; i < 10000; i++ {
-		err := ProductListMain.AddProduct(fmt.Sprintf("Продукт %d", i), Product{Price: 10.51, Type: ProductNormal})
+		err := envLst.ProductListWithMutex.AddProduct(fmt.Sprintf("Продукт %d", i), Product{Price: 10.51, Type: ProductNormal})
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
 	}
-	ProductListMain["XXXXX"] = &Product{Price: -1, Type: ProductNormal}
-	ProductListMain["XXXX1"] = &Product{Price: 0, Type: ProductNormal}
-	ProductListMain["XXXXX2"] = &Product{Price: -10, Type: ProductNormal}
-	return ProductListMain
+	envLst.ProductListWithMutex.Products["XXXXX"] = &Product{Price: -1, Type: ProductNormal}
+	envLst.ProductListWithMutex.Products["XXXX1"] = &Product{Price: 0, Type: ProductNormal}
+	envLst.ProductListWithMutex.Products["XXXXX2"] = &Product{Price: -10, Type: ProductNormal}
 }
 
 func TestWrongDataImportProductsCSV(t *testing.T) {
-	_ = InitWrongProductCatalog()
+	envLst := NewShopBase()
+	InitWrongProductCatalog(envLst)
 	exp := []byte{}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		exp = ExportProdcuctsCSV()
+		exp = ExportProdcuctsCSV(envLst)
 		return
 	}()
 	wg.Wait()
 
-	products := ProductListMain
+	products := envLst.ProductListWithMutex.Products
 	// удалим справочник
 	for k := range products {
 		delete((products), k)
@@ -248,7 +253,7 @@ func TestWrongDataImportProductsCSV(t *testing.T) {
 	err := errors.New("")
 	go func() {
 		defer wg.Done()
-		err = ImportProductsCSV(exp)
+		err = ImportProductsCSV(exp, envLst)
 	}()
 	wg.Wait()
 	if err == nil {
