@@ -1,106 +1,93 @@
 package shop_competition
 
 import (
-	"errors"
 	"fmt"
 	sorting "sort"
 	"strings"
 	"time"
 )
 
-//  справочник аккаунтов
-var AccountsListMain = AccountsList{}
-
 // Register - регистрация пользователя
-func (accountsList *AccountsList) Register(username string, accounttype AccountType) error {
+func (accList *AccountsList) Register(username string, accounttype AccountType) error {
 	done := make(chan struct{})
-	errmsg := make(chan string, 1)
-
+	errmsg := make(chan error, 1)
+	timer := time.NewTimer(time.Second)
 	go func() {
+		defer close(done)
+		defer accList.Unlock()
 
-		timer := time.NewTimer(time.Second)
-		go func() {
-			defer close(done)
-			if len(strings.Trim(username, "")) == 0 {
-				errmsg <- fmt.Sprintf("username %s пустое ", username)
-				return
-			}
-			globalMutex.Lock()
-			_, ok := (*accountsList)[username]
-			if ok {
-				globalMutex.Unlock()
-				errmsg <- fmt.Sprintf("такой пользователь %s уже есть ", username)
-				return
-			}
-			(*accountsList)[username] = &Account{AccountType: accounttype, Balance: 0}
-			globalMutex.Unlock()
-			errmsg <- ""
+		accList.Lock()
+		if len(strings.Trim(username, "")) == 0 {
+			errmsg <- fmt.Errorf("username %s пустое ", username)
 			return
-		}()
-		select {
-		case <-done:
-		case <-timer.C:
-			errmsg <- "Превышен интервал ожидания"
 		}
+		_, ok := (*accList).Accounts[username]
+		if ok {
+			errmsg <- fmt.Errorf("такой пользователь %s уже есть ", username)
+			return
+		}
+		(*accList).Accounts[username] = &Account{AccountType: accounttype, Balance: 0}
+		errmsg <- nil
+		return
 	}()
 
-	for errm := range errmsg {
-		if errm != "" {
-			return errors.New(errm)
+	for {
+		select {
+		case <-done:
+			return nil
+		case <-timer.C:
+			errmsg <- fmt.Errorf("Превышен интервал ожидания")
+		case err := <-errmsg:
+			return err
+		default:
 		}
-		return nil
 	}
-	return nil
 }
 
 // AddBalance - добавим баланс
-func (accountsList *AccountsList) AddBalance(username string,
+func (accList *AccountsList) AddBalance(username string,
 	sum float32) error {
 	done := make(chan struct{})
-	errmsg := make(chan string, 1)
-
+	errmsg := make(chan error, 1)
 	timer := time.NewTimer(time.Second)
 
 	go func() {
 		defer close(done)
-		globalMutex.Lock()
-		acc, ok := (*accountsList)[username]
+		defer accList.Unlock()
+
+		accList.Lock()
+		acc, ok := (*accList).Accounts[username]
 		if !ok {
-			globalMutex.Unlock()
-			errmsg <- fmt.Sprintf("Пользователь %s не найден", username)
+			errmsg <- fmt.Errorf("Пользователь %s не найден", username)
 			return
 		}
 		if sum <= 0 {
-			globalMutex.Unlock()
-			errmsg <- fmt.Sprintf("не дoпустимый баланс  %f ", sum)
+			errmsg <- fmt.Errorf("не дoпустимый баланс  %f ", sum)
 			return
 		}
 		acc.Balance += sum
-		globalMutex.Unlock()
-		errmsg <- ""
+		errmsg <- nil
 		return
 	}()
 
-	select {
-	case <-done:
-	case <-timer.C:
-		errmsg <- "Превышен интервал ожидания"
-	}
-
-	for errm := range errmsg {
-		if errm != "" {
-			return errors.New(errm)
+	for {
+		select {
+		case <-done:
+			return nil
+		case <-timer.C:
+			return fmt.Errorf("Превышен интервал ожидания")
+		case err := <-errmsg:
+			return err
+		default:
 		}
-		return nil
 	}
-	return nil
 }
 
 // Balance - получить баланс
-func (accountsList *AccountsList) Balance(username string) (float32, error) {
+func (accList *AccountsList) Balance(username string) (float32, error) {
 	type vmsgType struct {
 		balance float32
-		errmsg  string
+		errmsg  error
 	}
 
 	done := make(chan struct{})
@@ -109,54 +96,50 @@ func (accountsList *AccountsList) Balance(username string) (float32, error) {
 
 	go func() {
 		defer close(done)
-		globalMutex.Lock()
-		acc, ok := (*accountsList)[username]
+		defer accList.Unlock()
+
+		accList.Lock()
+		acc, ok := (*accList).Accounts[username]
 		accBalance := acc.Balance
 		if !ok {
 			vmsg <- vmsgType{balance: 0,
-				errmsg: fmt.Sprintf("Пользователь %s не найден", username)}
-			globalMutex.Unlock()
+				errmsg: fmt.Errorf("Пользователь %s не найден", username)}
 			return
 		}
-		vmsg <- vmsgType{balance: accBalance, errmsg: "ok"}
-		globalMutex.Unlock()
+		vmsg <- vmsgType{balance: accBalance, errmsg: nil}
 		return
 	}()
 
-	select {
-	case <-done:
-	case <-timer.C:
-		vmsg <- vmsgType{balance: 0, errmsg: "Превышен интервал ожидания"}
-	}
-	for errm := range vmsg {
-		switch {
-		case errm.errmsg != "" && errm.errmsg != "ok":
-			return errm.balance, errors.New(errm.errmsg)
-		case errm.errmsg == "ok":
-			return errm.balance, nil
+	for {
+		select {
+		case <-done:
+			bal := <-vmsg
+			return bal.balance, bal.errmsg
+		case <-timer.C:
+			bal := vmsgType{balance: 0,
+				errmsg: fmt.Errorf("Превышен интервал ожидания")}
+			return bal.balance, bal.errmsg
 		default:
-			return 0, nil
 		}
-
 	}
-	return 0, nil
 }
 
 // GetAccounts - сортируем аккаунты
-func (accountsList AccountsList) GetAccounts(sort AccountSortType) AccountsList {
-	outAcc := AccountsList{}
+func (accList AccountsList) GetAccounts(sort AccountSortType) map[string]*Account {
 
-	globalMutex.Lock()
-	keys := make([]string, 0, len(accountsList))
+	outAcc := map[string]*Account{}
 
-	for k := range accountsList {
+	accList.Lock()
+	keys := make([]string, 0, len(accList.Accounts))
+
+	for k := range accList.Accounts {
 		keys = append(keys, k)
 	}
-	keys1 := make([]float64, 0, len(accountsList))
-	for _, v := range accountsList {
+	keys1 := make([]float64, 0, len(accList.Accounts))
+	for _, v := range accList.Accounts {
 		keys1 = append(keys1, float64(v.Balance))
 	}
-	globalMutex.Unlock()
+	accList.Unlock()
 	switch sort {
 	case SortByName:
 		sorting.Strings(keys)
@@ -168,13 +151,15 @@ func (accountsList AccountsList) GetAccounts(sort AccountSortType) AccountsList 
 
 	if sort == SortByName || sort == SortByNameReverse {
 		for i := 0; i < len(keys); i++ {
-			outAcc[keys[i]] = accountsList[keys[i]]
-			fmt.Printf("%s  %f  %d \n", keys[i], outAcc[keys[i]].Balance, outAcc[keys[i]].AccountType)
+			outAcc[keys[i]] = accList.Accounts[keys[i]]
+			fmt.Printf("%s  %f  %d \n", keys[i],
+				outAcc[keys[i]].Balance,
+				outAcc[keys[i]].AccountType)
 		}
 	}
 	if sort == SortByBalance {
 		for i := 0; i < len(keys1); i++ {
-			for el, v := range accountsList {
+			for el, v := range accList.Accounts {
 				if v.Balance == float32(keys1[i]) {
 					outAcc[el] = v
 					fmt.Printf("%s  %f  %d \n", el,

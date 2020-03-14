@@ -6,27 +6,27 @@ import (
 	"testing"
 )
 
-func InitBundles() BundlesList {
-	InitProductCatalog()
-	BundlesListMain := BundlesList{}
-	err := BundlesListMain.AddBundle("8 марта", "духи", 0.3, "цветы", "шампанское", "шоколад")
+func InitBundles(envList *ShopBase) {
+	InitProductCatalog(envList.ProductListWithMutex)
+	err := envList.BundlesListWithMutex.AddBundle("8 марта", "духи", 0.3, envList, "цветы", "шампанское", "шоколад")
 	if err != nil {
 		fmt.Printf("%s", err)
 	}
-	err = BundlesListMain.AddBundle("23 февраля", "водка", 0.4, "сыр", "колбаса", "хлеб")
+	err = envList.BundlesListWithMutex.AddBundle("23 февраля", "водка", 0.4, envList, "сыр", "колбаса", "хлеб")
 	if err != nil {
 		fmt.Printf("%s", err)
 	}
-	err = BundlesListMain.AddBundle("Новый год", "шампанское", 0.4, "сыр", "колбаса", "шоколад")
+	err = envList.BundlesListWithMutex.AddBundle("Новый год", "шампанское", 0.4, envList, "сыр", "колбаса", "шоколад")
 	if err != nil {
 		fmt.Printf("%s", err)
 	}
-	return BundlesListMain
+
 }
 
 func TestInitBundles(t *testing.T) {
-	v := InitBundles()
-	if len(v) == 0 {
+	envList := NewShopBase()
+	InitBundles(envList)
+	if len(envList.BundlesListWithMutex.BundleList) == 0 {
 		t.Fatal("инициализация не прошла")
 	}
 }
@@ -35,23 +35,26 @@ func TestSimpleRemoveBoundle(t *testing.T) {
 	/*
 	 пришлось добавить Simple - а то стартовал вместе м нижним тестом
 	*/
-	lbundleList := InitBundles()
+	envList := NewShopBase()
+	InitBundles(envList)
 	var wg sync.WaitGroup
 	bundles := [2]string{"XXXX", "Новый год"}
 	wg.Add(len(bundles))
 
-	_, ok := lbundleList[bundles[0]]
+	_, ok := envList.BundlesListWithMutex.BundleList[bundles[0]]
 	if ok {
-		t.Fatalf(" инит. среды не верный - не должно быть комплекта  %s \n", bundles[0])
+		t.Fatalf(" инит. среды не верный - не должно быть комплекта  %s \n",
+			bundles[0])
 	}
-	_, ok = lbundleList[bundles[1]]
+	_, ok = envList.BundlesListWithMutex.BundleList[bundles[1]]
 	if !ok {
-		t.Fatalf(" инит. среды не верный - должtн быть комплект %s \n", bundles[1])
+		t.Fatalf(" инит. среды не верный - должtн быть комплект %s \n",
+			bundles[1])
 	}
 
 	go func() { // удаляем не существующий комплект
 		defer wg.Done()
-		err := lbundleList.RemoveBundle(bundles[0])
+		err := envList.BundlesListWithMutex.RemoveBundle(bundles[0])
 		if err == nil {
 			t.Fatalf(" %s \n", err)
 		}
@@ -60,7 +63,7 @@ func TestSimpleRemoveBoundle(t *testing.T) {
 
 	go func() { // удаляем существующий комплект
 		defer wg.Done()
-		err := lbundleList.RemoveBundle(bundles[1])
+		err := envList.BundlesListWithMutex.RemoveBundle(bundles[1])
 		if err != nil {
 			t.Fatalf(" %s \n", err)
 		}
@@ -69,11 +72,11 @@ func TestSimpleRemoveBoundle(t *testing.T) {
 
 	wg.Wait()
 
-	_, ok = lbundleList[bundles[0]]
+	_, ok = envList.BundlesListWithMutex.BundleList[bundles[0]]
 	if ok {
 		t.Fatalf(" не должно быть комплекта  %s \n", bundles[0])
 	}
-	_, ok = lbundleList[bundles[1]]
+	_, ok = envList.BundlesListWithMutex.BundleList[bundles[1]]
 	if ok {
 		t.Fatalf(" не должно быть - комплект %s удален \n", bundles[1])
 	}
@@ -81,13 +84,15 @@ func TestSimpleRemoveBoundle(t *testing.T) {
 }
 
 func TestRemoveBoundleAndChangeDiscount(t *testing.T) {
-	lbundleList := InitBundles()
+	envList := NewShopBase()
+	InitBundles(envList)
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		err := lbundleList.RemoveBundle("Новый год")
+		err := envList.BundlesListWithMutex.RemoveBundle("Новый год")
 		if err != nil {
 			t.Fatalf(" %s \n", err)
 		}
@@ -97,7 +102,7 @@ func TestRemoveBoundleAndChangeDiscount(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		var err error
-		err = lbundleList.ChangeDiscount("Новый год", 0.25)
+		err = envList.BundlesListWithMutex.ChangeDiscount("Новый год", 0.25)
 		if err != nil {
 			t.Logf(" %s \n", err)
 		}
@@ -107,13 +112,15 @@ func TestRemoveBoundleAndChangeDiscount(t *testing.T) {
 }
 
 func TestAddAndRemoveBoundle(t *testing.T) {
-	lbundleList := InitBundles()
+	envList := NewShopBase()
+	InitBundles(envList)
+
 	var wg sync.WaitGroup
 
 	bundles := [2]string{"Новый год", "23 февраля"}
 
 	for idx := 0; idx < len(bundles); idx++ {
-		_, ok := lbundleList[bundles[idx]]
+		_, ok := envList.BundlesListWithMutex.BundleList[bundles[idx]]
 		if !ok {
 			t.Fatalf(" до теста: комплект %s должен быть в базе \n", bundles[idx])
 		}
@@ -123,7 +130,7 @@ func TestAddAndRemoveBoundle(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err := lbundleList.RemoveBundle(bundles[0])
+		err := envList.BundlesListWithMutex.RemoveBundle(bundles[0])
 		if err != nil {
 			t.Logf(" %s \n", err)
 		}
@@ -132,7 +139,7 @@ func TestAddAndRemoveBoundle(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err := lbundleList.AddBundle(bundles[0], "шампанское", 0.4, "сыр", "колбаса", "шоколад")
+		err := envList.BundlesListWithMutex.AddBundle(bundles[0], "шампанское", 0.4, envList, "сыр", "колбаса", "шоколад")
 		if err != nil {
 			t.Logf(" %s \n", err)
 		}
@@ -141,7 +148,7 @@ func TestAddAndRemoveBoundle(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err := lbundleList.RemoveBundle(bundles[1])
+		err := envList.BundlesListWithMutex.RemoveBundle(bundles[1])
 		if err != nil {
 			t.Logf(" %s \n", err)
 		}
@@ -149,7 +156,7 @@ func TestAddAndRemoveBoundle(t *testing.T) {
 	}()
 	wg.Wait()
 	for idx := 0; idx < len(bundles); idx++ {
-		_, ok := lbundleList[bundles[idx]]
+		_, ok := envList.BundlesListWithMutex.BundleList[bundles[idx]]
 		if idx == 0 && !ok {
 			t.Logf("после теста: комплект %s должен быть в базе \n", bundles[idx])
 		}
@@ -161,14 +168,15 @@ func TestAddAndRemoveBoundle(t *testing.T) {
 }
 
 func TestAddWrongBoundle(t *testing.T) {
-	lbundleList := InitBundles()
+	envList := NewShopBase()
+	InitBundles(envList)
 
 	var wg sync.WaitGroup
 
 	bundles := [3]string{"Новый год", "Мелочи", "Мелочи1"}
 
 	for idx := 0; idx < len(bundles); idx++ {
-		_, ok := lbundleList[bundles[idx]]
+		_, ok := envList.BundlesListWithMutex.BundleList[bundles[idx]]
 		if idx == 0 && !ok {
 			t.Fatalf(" комплект %s должен быть в базе \n", bundles[idx])
 		}
@@ -181,7 +189,7 @@ func TestAddWrongBoundle(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err := lbundleList.AddBundle(bundles[0], "шампанское", 0.4, "сыр", "колбаса", "шоколад")
+		err := envList.BundlesListWithMutex.AddBundle(bundles[0], "шампанское", 0.4, envList, "сыр", "колбаса", "шоколад")
 		if err == nil {
 			t.Fatalf("добавили одноименный комплект %s \n", bundles[0])
 		}
@@ -190,7 +198,7 @@ func TestAddWrongBoundle(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err := lbundleList.AddBundle(bundles[1], "зубочистка", 0.1, "спички", "вермишель")
+		err := envList.BundlesListWithMutex.AddBundle(bundles[1], "зубочистка", 0.1, envList, "спички", "вермишель")
 		if err == nil {
 			t.Fatalf("добавили комплект %s где основа - пробник\n", bundles[1])
 		}
@@ -199,8 +207,8 @@ func TestAddWrongBoundle(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err := lbundleList.AddBundle(bundles[2],
-			"вермишель", 0.1, "зубочистка", "зубочистка")
+		err := envList.BundlesListWithMutex.AddBundle(bundles[2],
+			"вермишель", 0.1, envList, "зубочистка", "зубочистка")
 		if err == nil {
 			t.Fatalf("добавили комплект %s где одни пробники \n", bundles[2])
 		}
@@ -209,7 +217,7 @@ func TestAddWrongBoundle(t *testing.T) {
 	wg.Wait()
 
 	for idx := 0; idx < len(bundles); idx++ {
-		_, ok := lbundleList[bundles[idx]]
+		_, ok := envList.BundlesListWithMutex.BundleList[bundles[idx]]
 		if idx == 0 && !ok {
 			t.Fatalf(" после теста: комплект %s должен быть в базе \n", bundles[idx])
 		}

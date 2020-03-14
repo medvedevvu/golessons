@@ -10,7 +10,7 @@ import (
 )
 
 //ImportProductsCSV([]byte)
-func ImportProductsCSV(data []byte) error {
+func ImportProductsCSV(data []byte, shop *ShopBase) error {
 	r := csv.NewReader(bytes.NewReader(data))
 	records, err := r.ReadAll()
 	if err != nil {
@@ -52,7 +52,7 @@ Loop:
 	for {
 		select {
 		case res1 := <-res:
-			for key, val := range res1 {
+			for key, val := range res1.Products {
 				result[key] = val
 			}
 		loop:
@@ -69,18 +69,18 @@ Loop:
 			}
 			for i := 0; i < len(done)-1; i++ {
 				res1 := <-res
-				for key, val := range res1 {
+				for key, val := range res1.Products {
 					result[key] = val
 				}
 			}
 			cancel() // выключаю все горутины
 			// все прочитались - добовляем в базовую коллекцию
-			globalMutex.Lock()
-			productsList := ProductListMain
+			shop.Lock()
+			productsList := shop.ProductListWithMutex.Products
 			for key, val := range result {
-				(productsList)[key] = val
+				productsList[key] = val
 			}
-			globalMutex.Unlock()
+			shop.Unlock()
 			break Loop
 		case errMsg := <-errCh:
 			cancel() // выключаю все горутины
@@ -91,10 +91,10 @@ Loop:
 }
 
 //ExportProdcuctsCSV
-func ExportProdcuctsCSV() []byte {
-	globalMutex.Lock()
-	productList := ProductListMain
-	globalMutex.Unlock()
+func ExportProdcuctsCSV(shop *ShopBase) []byte {
+	shop.Lock()
+	productList := shop.ProductListWithMutex.Products
+	shop.Unlock()
 	productListSlice := []map[string]*Product{}
 	for name, elem := range productList {
 		productListSlice = append(
@@ -161,10 +161,10 @@ Loop:
 }
 
 //ExportAccountsCSV
-func ExportAccountsCSV() []byte {
-	globalMutex.Lock()
-	accountList := AccountsListMain
-	globalMutex.Unlock()
+func ExportAccountsCSV(shop *ShopBase) []byte {
+	shop.Lock()
+	accountList := shop.AccountsListWithMutex.Accounts
+	shop.Unlock()
 	accountListSlice := []map[string]*Account{}
 	for name, elem := range accountList {
 		accountListSlice = append(
@@ -232,7 +232,7 @@ Loop:
 }
 
 //ImportAccountsCSV
-func ImportAccountsCSV(data []byte) error {
+func ImportAccountsCSV(data []byte, shop *ShopBase) error {
 	r := csv.NewReader(bytes.NewReader(data))
 	records, err := r.ReadAll()
 	if err != nil {
@@ -274,7 +274,7 @@ Loop:
 	for {
 		select {
 		case res1 := <-res:
-			for key, val := range res1 {
+			for key, val := range res1.Accounts {
 				result[key] = val
 			}
 		loop:
@@ -291,18 +291,18 @@ Loop:
 			}
 			for i := 0; i < len(done)-1; i++ {
 				res1 := <-res
-				for key, val := range res1 {
+				for key, val := range res1.Accounts {
 					result[key] = val
 				}
 			}
 			cancel() // выключаю все горутины
 			// все прочитались - добовляем в базовую коллекцию
-			globalMutex.Lock()
-			accountList := AccountsListMain
+			shop.Lock()
+			accountList := shop.AccountsListWithMutex.Accounts
 			for key, val := range result {
-				(accountList)[key] = val
+				accountList[key] = val
 			}
-			globalMutex.Unlock()
+			shop.Unlock()
 			break Loop
 		case errMsg := <-errCh:
 			cancel() // выключаю все горутины

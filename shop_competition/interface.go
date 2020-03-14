@@ -25,12 +25,12 @@ type AccountManager interface {
 	Register(username string, accounttype AccountType) error
 	AddBalance(username string, sum float32) error
 	Balance(username string) (float32, error)
-	GetAccounts(sort AccountSortType) AccountsList //[]Account
+	GetAccounts(sort AccountSortType) map[string]*Account //[]Account
 }
 
 //OrderManager - интерфейс для работы заказами. Рассчитать заказ и купить.
 type OrderManager interface {
-	PlaceOrder(username string, order Order) error
+	PlaceOrder(username string, order Order, shop *ShopBase) error
 	//CalculateOrder(order Order) (float32, error)
 }
 
@@ -38,7 +38,9 @@ type OrderManager interface {
 type BundleManager interface {
 	AddBundle(name string,
 		main string, // название основного продукта
-		discount float32, additional ...string, // все остальные товары комлекта
+		discount float32,
+		shop *ShopBase,
+		additional ...string, // все остальные товары комлекта
 	) error
 	ChangeDiscount(name string, discount float32) error
 	RemoveBundle(name string) error
@@ -47,12 +49,12 @@ type BundleManager interface {
 
 //Exporter - интерфейс для получения полного состояния магазина.
 type Exporter interface {
-	Export() ([]byte, error)
+	Export(shop *ShopBase) ([]byte, error)
 }
 
 //Importer - интерфейс для загрузки состояния магазина. Принимает формат который возвращает Exporter.
 type Importer interface {
-	Import(data []byte) error
+	Import(data []byte, shop *ShopBase) error
 }
 
 // ShopInfo - краткая информация о магазине

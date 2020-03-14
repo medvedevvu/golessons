@@ -4,25 +4,24 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 )
 
-var (
-	ProductListMain = ProductsList{}
-	globalMutex     sync.Mutex
-)
+//var (
+//	ProductListMain = ProductsList{}
+//	globalMutex     sync.Mutex
+//)
 
 //CheckAttrsOfProduct проверка атрибутов товара
-func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
+func (prodList *ProductsList) CheckAttrsOfProduct(productName string,
 	product Product, operation OperationType) error {
 
 	if len(strings.Trim(productName, "")) == 0 {
 		return fmt.Errorf("у продукта нет названия")
 	}
-	globalMutex.Lock() // на момент проверки наличия , заблокируем
-	_, ok := (*productsList)[productName]
-	globalMutex.Unlock() // разблокируем
+	prodList.Lock() // на момент проверки наличия , заблокируем
+	_, ok := (*prodList).Products[productName]
+	prodList.Unlock() // разблокируем
 	if operation == Add {
 		if ok {
 			return fmt.Errorf("продукт %s уже есть", productName)
@@ -46,7 +45,7 @@ func (productsList *ProductsList) CheckAttrsOfProduct(productName string,
 }
 
 // AddProduct добавляем товар в каталог
-func (productsList *ProductsList) AddProduct(productName string,
+func (prodList *ProductsList) AddProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
 
@@ -54,14 +53,14 @@ func (productsList *ProductsList) AddProduct(productName string,
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		err := productsList.CheckAttrsOfProduct(productName, product, Add)
+		err := prodList.CheckAttrsOfProduct(productName, product, Add)
 		if err != nil {
 			errorChan <- fmt.Errorf(" Добавление: ошибка проверки аттрибутов  товара %s", err)
 			return
 		}
-		globalMutex.Lock()
-		(*productsList)[productName] = &product
-		globalMutex.Unlock()
+		prodList.Lock()
+		(*prodList).Products[productName] = &product
+		prodList.Unlock()
 		errorChan <- nil
 		return
 	}()
@@ -77,7 +76,7 @@ func (productsList *ProductsList) AddProduct(productName string,
 }
 
 // ModifyProduct меняем товар в каталоге
-func (productsList *ProductsList) ModifyProduct(productName string,
+func (prodList *ProductsList) ModifyProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
 
@@ -85,14 +84,14 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		err := productsList.CheckAttrsOfProduct(productName, product, Edit)
+		err := prodList.CheckAttrsOfProduct(productName, product, Edit)
 		if err != nil {
 			errorChan <- fmt.Errorf("Изменение : ошибка проверки аттрибутов  товара %s", err)
 			return
 		}
-		globalMutex.Lock()
-		(*productsList)[productName] = &product
-		globalMutex.Unlock()
+		prodList.Lock()
+		(*prodList).Products[productName] = &product
+		prodList.Unlock()
 		errorChan <- nil
 		return
 	}()
@@ -109,22 +108,22 @@ func (productsList *ProductsList) ModifyProduct(productName string,
 }
 
 // RemoveProduct удаляем товар из каталога
-func (productsList *ProductsList) RemoveProduct(productName string) error {
+func (prodList *ProductsList) RemoveProduct(productName string) error {
 	timer := time.NewTimer(time.Second)
 	errorChan := make(chan error)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		globalMutex.Lock()
-		_, ok := (*productsList)[productName]
-		globalMutex.Unlock()
+		prodList.Lock()
+		_, ok := (*prodList).Products[productName]
+		prodList.Unlock()
 		if !ok {
 			errorChan <- fmt.Errorf("Удаление: продукта %s нет в каталоге", productName)
 			return
 		}
-		globalMutex.Lock()
-		delete(*productsList, productName)
-		globalMutex.Unlock()
+		prodList.Lock()
+		delete((*prodList).Products, productName)
+		prodList.Unlock()
 		errorChan <- nil
 		return
 	}()

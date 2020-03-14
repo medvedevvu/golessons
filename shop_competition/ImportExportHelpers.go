@@ -26,7 +26,7 @@ func ImportProductsCSVHelper(
 		}
 		return
 	}()
-	tempProductList := ProductsList{}
+	tempProductList := NewShopBase()
 	for _, rec := range productList {
 		name := rec[0] // name
 		value, err := strconv.ParseFloat(rec[1], 32)
@@ -43,14 +43,14 @@ func ImportProductsCSVHelper(
 			return
 		}
 		productType := ProductType(uint8(intval)) // productType
-		err = tempProductList.AddProduct(name, Product{Price: price, Type: productType})
+		err = tempProductList.ProductListWithMutex.AddProduct(name, Product{Price: price, Type: productType})
 		if err != nil {
 			errCh <- fmt.Errorf("%s -- ошибка добавления товара price=%v type=%v-- error=%v\n",
 				name, price, productType, err)
 			return
 		}
 	}
-	res <- tempProductList
+	res <- tempProductList.ProductListWithMutex
 	return
 }
 
@@ -141,7 +141,7 @@ func ImportAccountsCSVHelper(
 		}
 		return
 	}()
-	tempAccountList := AccountsList{}
+	tempAccountList := NewShopBase()
 	for _, rec := range accountList {
 		name := rec[0] // name
 		intval, err := strconv.Atoi(rec[2])
@@ -158,19 +158,19 @@ func ImportAccountsCSVHelper(
 			return
 		}
 		balance := float32(value) // Balance
-		err = tempAccountList.Register(name, accountType)
+		err = tempAccountList.AccountsListWithMutex.Register(name, accountType)
 		if err != nil {
 			errCh <- fmt.Errorf("%s -- ошибка регистрации аккаунта %v -- error=%v\n",
 				name, accountType, err)
 			return
 		}
-		err = tempAccountList.AddBalance(name, balance)
+		err = tempAccountList.AccountsListWithMutex.AddBalance(name, balance)
 		if err != nil {
 			errCh <- fmt.Errorf("%s -- ошибка добавления баланса %v -- error=%v\n",
 				name, balance, err)
 			return
 		}
 	}
-	res <- tempAccountList
+	res <- tempAccountList.AccountsListWithMutex
 	return
 }

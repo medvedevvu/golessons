@@ -6,46 +6,41 @@ import (
 	"testing"
 )
 
-func InitEnviroment() (AccountsList, ProductsList, BundlesList, AccountsOrders) {
-	AccountsListMain = AccountsList{}
-	AccountsListMain.Register("Kola", AccountNormal)
-	AccountsListMain.Register("Vasiy", AccountNormal)
-	AccountsListMain.Register("Dram", AccountPremium)
-	AccountsListMain.Register("Vortis", AccountPremium)
+func InitEnviroment(envList *ShopBase) {
+	envList.AccountsListWithMutex.Register("Kola", AccountNormal)
+	envList.AccountsListWithMutex.Register("Vasiy", AccountNormal)
+	envList.AccountsListWithMutex.Register("Dram", AccountPremium)
+	envList.AccountsListWithMutex.Register("Vortis", AccountPremium)
 
 	names := map[string]float32{"Kola": 2750.12,
 		"Vasiy": 19930.21, "Dram": 5000, "Vortis": 2136.67}
 
 	for key, vals := range names {
-		_ = AccountsListMain.AddBalance(key, vals)
+		_ = envList.AccountsListWithMutex.AddBalance(key, vals)
 	}
 
-	ProductListMain = ProductsList{}
-	_ = ProductListMain.AddProduct("колбаса", Product{Price: 125.23, Type: ProductNormal})
-	_ = ProductListMain.AddProduct("водка", Product{Price: 400.23, Type: ProductNormal})
-	_ = ProductListMain.AddProduct("сыр", Product{Price: 315.14, Type: ProductPremium})
-	_ = ProductListMain.AddProduct("макароны", Product{Price: 47.14, Type: ProductNormal})
-	_ = ProductListMain.AddProduct("зубочистка", Product{Price: 0.00, Type: ProductSample})
-	_ = ProductListMain.AddProduct("вермишель", Product{Price: 11.20, Type: ProductNormal})
-	_ = ProductListMain.AddProduct("хлеб", Product{Price: 32.10, Type: ProductNormal})
-	_ = ProductListMain.AddProduct("цветы", Product{Price: 30.10, Type: ProductPremium})
-	_ = ProductListMain.AddProduct("шампанское", Product{Price: 150.10, Type: ProductNormal})
-	_ = ProductListMain.AddProduct("шоколад", Product{Price: 478.21, Type: ProductPremium})
-	_ = ProductListMain.AddProduct("духи", Product{Price: 470.51, Type: ProductPremium})
-	_ = ProductListMain.AddProduct("спички", Product{Price: 22.51, Type: ProductNormal})
+	_ = envList.ProductListWithMutex.AddProduct("колбаса", Product{Price: 125.23, Type: ProductNormal})
+	_ = envList.ProductListWithMutex.AddProduct("водка", Product{Price: 400.23, Type: ProductNormal})
+	_ = envList.ProductListWithMutex.AddProduct("сыр", Product{Price: 315.14, Type: ProductPremium})
+	_ = envList.ProductListWithMutex.AddProduct("макароны", Product{Price: 47.14, Type: ProductNormal})
+	_ = envList.ProductListWithMutex.AddProduct("зубочистка", Product{Price: 0.00, Type: ProductSample})
+	_ = envList.ProductListWithMutex.AddProduct("вермишель", Product{Price: 11.20, Type: ProductNormal})
+	_ = envList.ProductListWithMutex.AddProduct("хлеб", Product{Price: 32.10, Type: ProductNormal})
+	_ = envList.ProductListWithMutex.AddProduct("цветы", Product{Price: 30.10, Type: ProductPremium})
+	_ = envList.ProductListWithMutex.AddProduct("шампанское", Product{Price: 150.10, Type: ProductNormal})
+	_ = envList.ProductListWithMutex.AddProduct("шоколад", Product{Price: 478.21, Type: ProductPremium})
+	_ = envList.ProductListWithMutex.AddProduct("духи", Product{Price: 470.51, Type: ProductPremium})
+	_ = envList.ProductListWithMutex.AddProduct("спички", Product{Price: 22.51, Type: ProductNormal})
 
-	BundlesListMain = BundlesList{}
-	_ = BundlesListMain.AddBundle("8 марта", "духи", 0.3, "цветы", "шампанское", "шоколад")
-	_ = BundlesListMain.AddBundle("23 февраля", "водка", 0.4, "сыр", "колбаса", "хлеб")
-	_ = BundlesListMain.AddBundle("Новый год", "шампанское", 0.4, "сыр", "колбаса", "шоколад")
+	_ = envList.BundlesListWithMutex.AddBundle("8 марта", "духи", 0.3, envList, "цветы", "шампанское", "шоколад")
+	_ = envList.BundlesListWithMutex.AddBundle("23 февраля", "водка", 0.4, envList, "сыр", "колбаса", "хлеб")
+	_ = envList.BundlesListWithMutex.AddBundle("Новый год", "шампанское", 0.4, envList, "сыр", "колбаса", "шоколад")
 
-	AccountsOrdersMain = AccountsOrders{}
-
-	return AccountsListMain, ProductListMain, BundlesListMain, AccountsOrdersMain
 }
 
 func TestAsyncPlaceOrder(t *testing.T) {
-	vaccountsList, _, _, vaccountsOrders := InitEnviroment()
+	envList := NewShopBase()
+	InitEnviroment(envList)
 
 	order := Order{}
 	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
@@ -63,7 +58,7 @@ func TestAsyncPlaceOrder(t *testing.T) {
 	wg.Add(len(names))
 	go func() {
 		defer wg.Done()
-		val, err := vaccountsList.Balance(names[0])
+		val, err := envList.AccountsListWithMutex.Balance(names[0])
 		monyKolabefore <- val
 		if err != nil {
 			t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, names[0], val)
@@ -77,7 +72,7 @@ func TestAsyncPlaceOrder(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		val, err := vaccountsList.Balance(names[1])
+		val, err := envList.AccountsListWithMutex.Balance(names[1])
 		monyVasiybefore <- val
 		if err != nil {
 			t.Fatalf("%s\n ошбка получения баланса - user %s", err, names[1])
@@ -94,7 +89,7 @@ func TestAsyncPlaceOrder(t *testing.T) {
 	wg.Add(len(names))
 	go func() {
 		defer wg.Done()
-		err := vaccountsOrders.PlaceOrder(names[1], order)
+		err := envList.AccountsOrdersWithMutex.PlaceOrder(names[1], order, envList)
 
 		monyVasiyafter <- 0
 		if err != nil {
@@ -105,7 +100,7 @@ func TestAsyncPlaceOrder(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err := vaccountsOrders.PlaceOrder(names[0], order)
+		err := envList.AccountsOrdersWithMutex.PlaceOrder(names[0], order, envList)
 		monyKolaafter <- 0
 		if err != nil {
 			t.Fatalf("%s\n", err)
@@ -118,7 +113,7 @@ func TestAsyncPlaceOrder(t *testing.T) {
 	wg.Add(len(names))
 	go func() {
 		defer wg.Done()
-		val, err := vaccountsList.Balance(names[0])
+		val, err := envList.AccountsListWithMutex.Balance(names[0])
 		if err != nil {
 			t.Fail()
 		}
@@ -133,7 +128,7 @@ func TestAsyncPlaceOrder(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		val, err := vaccountsList.Balance(names[1])
+		val, err := envList.AccountsListWithMutex.Balance(names[1])
 		if err != nil {
 			t.Fail()
 		}
@@ -149,7 +144,8 @@ func TestAsyncPlaceOrder(t *testing.T) {
 }
 
 func TestCheckPlaceOrder(t *testing.T) {
-	vaccountsList, _, _, vaccountsOrders := InitEnviroment()
+	envList := NewShopBase()
+	InitEnviroment(envList)
 
 	names := [2]string{"Kola", "Vasiy"}
 	order := Order{}
@@ -163,12 +159,12 @@ func TestCheckPlaceOrder(t *testing.T) {
 		monyVasiybefore float32
 	)
 
-	monyKolabefore, err := vaccountsList.Balance(names[0])
+	monyKolabefore, err := envList.AccountsListWithMutex.Balance(names[0])
 	if err != nil {
 		t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, names[0], monyKolabefore)
 	}
 
-	monyVasiybefore, err = vaccountsList.Balance(names[1])
+	monyVasiybefore, err = envList.AccountsListWithMutex.Balance(names[1])
 	if err != nil {
 		t.Fatalf("%s\n ошбка получения баланса - user %s", err, names[1])
 	}
@@ -176,7 +172,7 @@ func TestCheckPlaceOrder(t *testing.T) {
 	wg.Add(len(names))
 	go func() {
 		defer wg.Done()
-		err := vaccountsOrders.PlaceOrder(names[1], order)
+		err := envList.AccountsOrdersWithMutex.PlaceOrder(names[1], order, envList)
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
@@ -185,7 +181,7 @@ func TestCheckPlaceOrder(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		err := vaccountsOrders.PlaceOrder(names[0], order)
+		err := envList.AccountsOrdersWithMutex.PlaceOrder(names[0], order, envList)
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
@@ -195,7 +191,7 @@ func TestCheckPlaceOrder(t *testing.T) {
 	wg.Wait()
 	func() {
 		//	defer wg.Done()
-		monyKolaafter, err := vaccountsList.Balance(names[0])
+		monyKolaafter, err := envList.AccountsListWithMutex.Balance(names[0])
 		if err != nil {
 			t.Fail()
 		}
@@ -208,7 +204,7 @@ func TestCheckPlaceOrder(t *testing.T) {
 
 	func() {
 		//	defer wg.Done()
-		monyVasiyafter, err := vaccountsList.Balance(names[1])
+		monyVasiyafter, err := envList.AccountsListWithMutex.Balance(names[1])
 		if err != nil {
 			t.Fail()
 		}
@@ -222,7 +218,8 @@ func TestCheckPlaceOrder(t *testing.T) {
 }
 
 func TestPlaceOrderAndAddBalanc(t *testing.T) {
-	vaccountsList, _, _, vaccountsOrders := InitEnviroment()
+	envList := NewShopBase()
+	InitEnviroment(envList)
 
 	order := Order{}
 	order.ProductsName = []string{"водка", "шампанское", "колбаса"}
@@ -238,7 +235,7 @@ func TestPlaceOrderAndAddBalanc(t *testing.T) {
 
 	err := errors.New("")
 	func() {
-		monyKolabefore, err = vaccountsList.Balance(names[0])
+		monyKolabefore, err = envList.AccountsListWithMutex.Balance(names[0])
 		if err != nil {
 			t.Fatalf("%s\n ошбка получения баланса - user %s -- %f ", err, names[0], monyKolabefore)
 			return
@@ -250,7 +247,7 @@ func TestPlaceOrderAndAddBalanc(t *testing.T) {
 	}()
 
 	func() {
-		monyVasiybefore, err = vaccountsList.Balance(names[1])
+		monyVasiybefore, err = envList.AccountsListWithMutex.Balance(names[1])
 		if err != nil {
 			t.Fatalf("%s\n ошбка получения баланса - user %s", err, names[1])
 			return
@@ -262,7 +259,7 @@ func TestPlaceOrderAndAddBalanc(t *testing.T) {
 	}()
 
 	func() {
-		err = vaccountsOrders.PlaceOrder(names[1], order)
+		err = envList.AccountsOrdersWithMutex.PlaceOrder(names[1], order, envList)
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
@@ -270,7 +267,7 @@ func TestPlaceOrderAndAddBalanc(t *testing.T) {
 	}()
 
 	func() {
-		err = vaccountsOrders.PlaceOrder(names[0], order)
+		err = envList.AccountsOrdersWithMutex.PlaceOrder(names[0], order, envList)
 		if err != nil {
 			t.Fatalf("%s\n", err)
 		}
@@ -278,7 +275,7 @@ func TestPlaceOrderAndAddBalanc(t *testing.T) {
 	}()
 
 	func() {
-		monyKolaafter, err = vaccountsList.Balance(names[0])
+		monyKolaafter, err = envList.AccountsListWithMutex.Balance(names[0])
 		if err != nil {
 			t.Fail()
 		}
@@ -289,7 +286,7 @@ func TestPlaceOrderAndAddBalanc(t *testing.T) {
 	}()
 
 	func() {
-		monyVasiyafter, err = vaccountsList.Balance(names[1])
+		monyVasiyafter, err = envList.AccountsListWithMutex.Balance(names[1])
 		if err != nil {
 			t.Fail()
 		}

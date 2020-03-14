@@ -6,72 +6,77 @@ import (
 	"time"
 )
 
-var BundlesListMain = BundlesList{}
-
 //RemoveBundle удалить комплект
-func (bundlesList *BundlesList) RemoveBundle(name string) error {
+func (bndlList *BundlesList) RemoveBundle(name string) error {
 	timer := time.NewTimer(time.Second)
 	done := make(chan struct{}, 1)
 	result := make(chan error, 1)
 
 	go func() {
 		defer close(done)
-		globalMutex.Lock()
-		_, ok := (*bundlesList)[name]
-		globalMutex.Unlock()
+		bndlList.Lock()
+		_, ok := bndlList.BundleList[name]
+		bndlList.Unlock()
 		if !ok {
 			result <- fmt.Errorf("Удаление: комплекта %s нет в каталоге", name)
 			return
 		}
-		globalMutex.Lock()
-		delete(*bundlesList, name)
-		globalMutex.Unlock()
+		bndlList.Lock()
+		delete(bndlList.BundleList, name)
+		bndlList.Unlock()
 		result <- nil
 		return
 	}()
 
-	select {
-	case <-timer.C:
-		return errors.New("Превышен интервал ожидания")
-	case res := <-result:
-		return res
+	for {
+		select {
+		case <-timer.C:
+			return errors.New("Превышен интервал ожидания")
+		case res := <-result:
+			return res
+		default:
+		}
 	}
 }
 
 //ChangeDiscount сменить скидку
-func (bundlesList *BundlesList) ChangeDiscount(name string, discount float32) error {
+func (bndlList *BundlesList) ChangeDiscount(name string, discount float32) error {
 	timer := time.NewTimer(time.Second)
 	done := make(chan struct{})
 	result := make(chan error)
 
 	go func() {
 		defer close(done)
-		globalMutex.Lock()
-		vtemp, ok := (*bundlesList)[name]
-		globalMutex.Unlock()
+		bndlList.Lock()
+		vtemp, ok := bndlList.BundleList[name]
+		bndlList.Unlock()
 		if !ok {
 			result <- fmt.Errorf("комплект %s не найден в каталоге", name)
 			return
 		}
-		globalMutex.Lock()
+		bndlList.Lock()
 		vtemp.Discount = discount
-		globalMutex.Unlock()
+		bndlList.Unlock()
 		result <- nil
 		return
 	}()
 
-	select {
-	case <-timer.C:
-		return errors.New("Превышен интервал ожидания")
-	case res := <-result:
-		return res
+	for {
+		select {
+		case <-timer.C:
+			return errors.New("Превышен интервал ожидания")
+		case res := <-result:
+			return res
+		default:
+		}
 	}
 }
 
 //AddBundle добавить комплект
-func (bundlesList *BundlesList) AddBundle(name string,
+func (bndlList *BundlesList) AddBundle(name string,
 	main string,
 	discount float32,
+	shop *ShopBase,
 	additional ...string) error {
 	timer := time.NewTimer(time.Second)
 	done := make(chan struct{})
@@ -79,17 +84,16 @@ func (bundlesList *BundlesList) AddBundle(name string,
 
 	go func() {
 		defer close(done)
-		globalMutex.Lock()
-		_, ok := (*bundlesList)[name]
-		globalMutex.Unlock()
+		defer bndlList.Unlock()
+
+		bndlList.Lock()
+		_, ok := bndlList.BundleList[name]
 		if ok {
 			result <- fmt.Errorf("комплект %s уже есть в каталоге", name)
 			return
 		}
-		globalMutex.Lock()
-		vproductList := ProductListMain // получить каталог товаров
-		product, ok := (vproductList)[main]
-		globalMutex.Unlock()
+		// получить каталог товаров
+		product, ok := shop.ProductListWithMutex.Products[main]
 		if !ok {
 			result <- fmt.Errorf("товар %s не найден в каталоге товаров", name)
 			return
@@ -105,7 +109,7 @@ func (bundlesList *BundlesList) AddBundle(name string,
 		additional = append(additional, main)
 		countSample := 0
 		for _, item := range additional {
-			if (vproductList)[item].Type == ProductSample {
+			if shop.ProductListWithMutex.Products[item].Type == ProductSample {
 				countSample++ // посчитаем ProductSample
 			}
 		}
@@ -114,31 +118,29 @@ func (bundlesList *BundlesList) AddBundle(name string,
 			return
 		}
 		if len(additional) == 2 && countSample == 1 {
-			globalMutex.Lock()
-			(*bundlesList)[name] = Bundle{ProductsName: additional,
+			bndlList.BundleList[name] = Bundle{ProductsName: additional,
 				Type:     BundleSample,
 				Discount: 1 - discount,
 			}
-			globalMutex.Unlock()
 			result <- nil
 			return
 		} else {
-			globalMutex.Lock()
-			(*bundlesList)[name] = Bundle{ProductsName: additional,
+			bndlList.BundleList[name] = Bundle{ProductsName: additional,
 				Type:     BundleNormal,
 				Discount: 1 - discount,
 			}
-			globalMutex.Unlock()
 		}
 		result <- nil
 		return
 	}()
 
-	select {
-	case <-timer.C:
-		return errors.New("Превышен интервал ожидания")
-	case res := <-result:
-		return res
+	for {
+		select {
+		case <-timer.C:
+			return errors.New("Превышен интервал ожидания")
+		case res := <-result:
+			return res
+		default:
+		}
 	}
-
 }

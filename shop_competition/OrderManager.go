@@ -6,38 +6,36 @@ import (
 	"time"
 )
 
-var AccountsOrdersMain = AccountsOrders{}
+//var AccountsOrdersMain = AccountsOrders{}
 
 //PlaceOrder
-func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) error {
+func (accOrders *AccountsOrders) PlaceOrder(username string, order Order, shop *ShopBase) error {
 	timer := time.NewTimer(time.Second)
-
-	vaccountsList := AccountsListMain
-	vproductsList := ProductListMain
-	vboundlesList := BundlesListMain
 
 	errorChan := make(chan error)
 	done := make(chan struct{})
 
 	go func() {
 		defer close(done)
-		globalMutex.Lock()
-		vuser, ok := vaccountsList[username]
+		accOrders.Lock()
+		vuser, ok := shop.AccountsListWithMutex.Accounts[username]
 		if !ok {
 			errorChan <- fmt.Errorf(" пользователь %s не регистрирован", username)
-			globalMutex.Unlock()
+			accOrders.Unlock()
 			return
 		}
 		var productPrice float32
 		for _, productName := range order.ProductsName {
-			vdiscount := getDiscount(vuser.AccountType, (vproductsList)[productName].Type)
-			productPrice += (vproductsList)[productName].Price * vdiscount
+			vdiscount := getDiscount(vuser.AccountType,
+				shop.ProductListWithMutex.Products[productName].Type,
+			)
+			productPrice += shop.ProductListWithMutex.Products[productName].Price * vdiscount
 		}
 		var bundlePrice float32
 		for _, bundleName := range order.BundlesName {
-			vboundl := (vboundlesList)[bundleName]
+			vboundl := shop.BundlesListWithMutex.BundleList[bundleName]
 			for _, productName := range vboundl.ProductsName {
-				bundlePrice += (vproductsList)[productName].Price * vboundl.Discount
+				bundlePrice += shop.ProductListWithMutex.Products[productName].Price * vboundl.Discount
 			}
 		}
 
@@ -51,13 +49,13 @@ func (accountsOrders *AccountsOrders) PlaceOrder(username string, order Order) e
 				vuser.Balance,
 				order.TotalOrderPrice,
 				vuser.Balance-order.TotalOrderPrice)
-			globalMutex.Unlock()
+			accOrders.Unlock()
 			return
 		}
 		vuser.Balance -= order.TotalOrderPrice
 		// запишем в историю списаний
-		(*accountsOrders)[username] = append((*accountsOrders)[username], order)
-		globalMutex.Unlock()
+		accOrders.AccountOrders[username] = append(accOrders.AccountOrders[username], order)
+		accOrders.Unlock()
 		errorChan <- nil
 		return
 	}()
