@@ -24,7 +24,7 @@ func InitAccountList(vlist AccountsList) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		s := fmt.Sprintf("User%d", i)
 		err = vlist.Register(s, AccountNormal)
 		err = vlist.AddBalance(s, 99999)
@@ -80,12 +80,10 @@ func Test2WiceRegisterAccountsList(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		err := accList.Register("Vortis", AccountPremium)
-		if err == nil {
-			t.Fatalf("Fail with register user %s", "Vortis")
-		}
-		err = accList.Register("Vortis", AccountPremium)
-		if err == nil {
-			t.Fatalf("Fail with register twice user %s", "Vortis")
+		if err != nil {
+			t.Logf("User %s Fail with register twice %s ", "Vortis", err)
+		} else {
+			t.Fatalf("Прошла двойная регистрация")
 		}
 	}()
 	wg.Wait()

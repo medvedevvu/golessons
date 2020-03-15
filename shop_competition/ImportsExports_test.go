@@ -3,9 +3,7 @@ package shop_competition
 import (
 	"bytes"
 	"encoding/csv"
-	"errors"
 	"fmt"
-	"sync"
 	"testing"
 )
 
@@ -73,16 +71,8 @@ func TestExportAccountsCSV(t *testing.T) {
 	shop := NewShopBase()
 	accList := shop.AccountsListWithMutex
 	InitAccountList(accList)
-
 	exp := []byte{}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		exp = ExportAccountsCSV(shop)
-		return
-	}()
-	wg.Wait()
+	exp = ExportAccountsCSV(shop)
 	r := csv.NewReader(bytes.NewReader(exp))
 	records, err := r.ReadAll()
 	if err != nil {
@@ -96,30 +86,14 @@ func TestExportAccountsCSV(t *testing.T) {
 func TestImportAccountsCSV(t *testing.T) {
 	envList := NewShopBase()
 	InitAccountListWithBalance(envList)
-	exp := []byte{}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		exp = ExportAccountsCSV(envList)
-		return
-	}()
-	wg.Wait()
-
+	exp := ExportAccountsCSV(envList)
 	accountList := envList.AccountsListWithMutex.Accounts
 	// удалим справочник
 	for k := range accountList {
 		delete((accountList), k)
 	}
 	// закачаем по новой
-	wg.Add(1)
-	err := errors.New("")
-	go func() {
-		defer wg.Done()
-		err = ImportAccountsCSV(exp, envList)
-		return
-	}()
-	wg.Wait()
+	err := ImportAccountsCSV(exp, envList)
 	if err != nil {
 		t.Fatalf("%s\n", err)
 	}
@@ -131,30 +105,14 @@ func TestImportAccountsCSV(t *testing.T) {
 func TestWrongBalanceImportAccountsCSV(t *testing.T) {
 	envList := NewShopBase()
 	InitAccountListWithWrongBalance(envList)
-	exp := []byte{}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		exp = ExportAccountsCSV(envList)
-		return
-	}()
-	wg.Wait()
-
+	exp := ExportAccountsCSV(envList)
 	accountList := envList.AccountsListWithMutex.Accounts
 	// удалим справочник
 	for k := range accountList {
 		delete((accountList), k)
 	}
 	// закачаем по новой
-	wg.Add(1)
-	err := errors.New("")
-	go func() {
-		defer wg.Done()
-		err = ImportAccountsCSV(exp, envList)
-		return
-	}()
-	wg.Wait()
+	err := ImportAccountsCSV(exp, envList)
 	if err == nil {
 		t.Fatalf(" %s \n", err)
 	}
@@ -164,16 +122,7 @@ func TestExportProdcuctsCSV(t *testing.T) {
 	shop := NewShopBase()
 	vals := shop.ProductListWithMutex
 	InitProductCatalog(vals)
-
-	exp := []byte{}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		exp = ExportProdcuctsCSV(shop)
-		return
-	}()
-	wg.Wait()
+	exp := ExportProdcuctsCSV(shop)
 	if len(exp) == 0 {
 		t.Fatalf(" ошибка -- кол-во экспорт. записей %d\n", len(exp))
 	}
@@ -183,43 +132,29 @@ func TestImportProductsCSV(t *testing.T) {
 	shop := NewShopBase()
 	vals := shop.ProductListWithMutex
 	InitProductCatalog(vals)
-
-	exp := []byte{}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		exp = ExportProdcuctsCSV(shop)
-		return
-	}()
-	wg.Wait()
-
+	exp := ExportProdcuctsCSV(shop)
+	//fmt.Printf("%v ", exp)
 	products := shop.ProductListWithMutex.Products
 	// удалим справочник
 	before_len_records := len(products)
 	for k := range products {
 		delete((products), k)
 	}
-	// закачаем по новой
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		ImportProductsCSV(exp, shop)
-	}()
-	wg.Wait()
+	err := ImportProductsCSV(exp, shop)
+	if err != nil {
+		t.Fatalf(" ошибка импорта %v\n", err)
+	}
 	shop.Lock()
 	records := shop.ProductListWithMutex.Products
 	len_records := len(records)
 	shop.Unlock()
-
 	if len_records != before_len_records {
 		t.Fatalf("Импорт не исполнен %d <> %d \n", len_records, before_len_records)
 	}
-
 }
 
 func InitWrongProductCatalog(envLst *ShopBase) {
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		err := envLst.ProductListWithMutex.AddProduct(fmt.Sprintf("Продукт %d", i), Product{Price: 10.51, Type: ProductNormal})
 		if err != nil {
 			fmt.Printf("%s\n", err)
@@ -233,29 +168,14 @@ func InitWrongProductCatalog(envLst *ShopBase) {
 func TestWrongDataImportProductsCSV(t *testing.T) {
 	envLst := NewShopBase()
 	InitWrongProductCatalog(envLst)
-	exp := []byte{}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		exp = ExportProdcuctsCSV(envLst)
-		return
-	}()
-	wg.Wait()
-
+	exp := ExportProdcuctsCSV(envLst)
 	products := envLst.ProductListWithMutex.Products
 	// удалим справочник
 	for k := range products {
 		delete((products), k)
 	}
 	// закачаем по новой
-	wg.Add(1)
-	err := errors.New("")
-	go func() {
-		defer wg.Done()
-		err = ImportProductsCSV(exp, envLst)
-	}()
-	wg.Wait()
+	err := ImportProductsCSV(exp, envLst)
 	if err == nil {
 		t.Fatalf(" Портировали продукты XXXX... с неверными данными \n")
 	}

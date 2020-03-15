@@ -7,11 +7,6 @@ import (
 	"time"
 )
 
-//var (
-//	ProductListMain = ProductsList{}
-//	globalMutex     sync.Mutex
-//)
-
 //CheckAttrsOfProduct проверка атрибутов товара
 func (prodList *ProductsList) CheckAttrsOfProduct(productName string,
 	product Product, operation OperationType) error {
@@ -48,7 +43,6 @@ func (prodList *ProductsList) CheckAttrsOfProduct(productName string,
 func (prodList *ProductsList) AddProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
-
 	errorChan := make(chan error)
 	done := make(chan struct{})
 	go func() {
@@ -79,7 +73,6 @@ func (prodList *ProductsList) AddProduct(productName string,
 func (prodList *ProductsList) ModifyProduct(productName string,
 	product Product) error {
 	timer := time.NewTimer(time.Second)
-
 	errorChan := make(chan error)
 	done := make(chan struct{})
 	go func() {
@@ -116,12 +109,11 @@ func (prodList *ProductsList) RemoveProduct(productName string) error {
 		defer close(done)
 		prodList.Lock()
 		_, ok := (*prodList).Products[productName]
-		prodList.Unlock()
 		if !ok {
 			errorChan <- fmt.Errorf("Удаление: продукта %s нет в каталоге", productName)
+			prodList.Unlock()
 			return
 		}
-		prodList.Lock()
 		delete((*prodList).Products, productName)
 		prodList.Unlock()
 		errorChan <- nil

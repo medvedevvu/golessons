@@ -14,16 +14,15 @@ func (bndlList *BundlesList) RemoveBundle(name string) error {
 
 	go func() {
 		defer close(done)
+		defer bndlList.Unlock()
+
 		bndlList.Lock()
 		_, ok := bndlList.BundleList[name]
-		bndlList.Unlock()
 		if !ok {
 			result <- fmt.Errorf("Удаление: комплекта %s нет в каталоге", name)
 			return
 		}
-		bndlList.Lock()
 		delete(bndlList.BundleList, name)
-		bndlList.Unlock()
 		result <- nil
 		return
 	}()

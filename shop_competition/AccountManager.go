@@ -53,10 +53,9 @@ func (accList *AccountsList) AddBalance(username string,
 
 	go func() {
 		defer close(done)
-		defer accList.Unlock()
-
 		accList.Lock()
 		acc, ok := (*accList).Accounts[username]
+		accList.Unlock()
 		if !ok {
 			errmsg <- fmt.Errorf("Пользователь %s не найден", username)
 			return
@@ -65,7 +64,10 @@ func (accList *AccountsList) AddBalance(username string,
 			errmsg <- fmt.Errorf("не дoпустимый баланс  %f ", sum)
 			return
 		}
+		accList.Lock()
 		acc.Balance += sum
+		accList.Unlock()
+
 		errmsg <- nil
 		return
 	}()
@@ -96,10 +98,10 @@ func (accList *AccountsList) Balance(username string) (float32, error) {
 
 	go func() {
 		defer close(done)
-		defer accList.Unlock()
 
 		accList.Lock()
 		acc, ok := (*accList).Accounts[username]
+		accList.Unlock()
 		accBalance := acc.Balance
 		if !ok {
 			vmsg <- vmsgType{balance: 0,

@@ -16,7 +16,7 @@ func ImportProductsCSV(data []byte, shop *ShopBase) error {
 	if err != nil {
 		panic(err)
 	}
-	var page_size int = 1000 // 100
+	var page_size int = 500 // 100
 	var pages int = int(len(records) / page_size)
 	var last_page_add int = int(math.Mod(float64(len(records)), float64(page_size)))
 
@@ -39,12 +39,12 @@ func ImportProductsCSV(data []byte, shop *ShopBase) error {
 			go func(ctx context.Context, start int, end int) {
 				ImportProductsCSVHelper(ctx, records[start:end], res, done, errCh)
 			}(ctx, start, end)
-			time.Sleep(time.Second)
+			//time.Sleep(time.Second)
 		}
 	} else {
 		go func(ctx context.Context, last_page_add int) {
 			ImportProductsCSVHelper(ctx, records[0:last_page_add], res, done, errCh)
-			time.Sleep(time.Second)
+			//time.Sleep(time.Second)
 		}(ctx, last_page_add)
 	}
 	result := map[string]*Product{}
@@ -57,6 +57,7 @@ Loop:
 			}
 		loop:
 			for {
+				time.Sleep(time.Microsecond)
 				if len(done) == pages {
 					break loop
 				}
@@ -85,6 +86,7 @@ Loop:
 		case errMsg := <-errCh:
 			cancel() // выключаю все горутины
 			return errMsg
+		default:
 		}
 	}
 	return nil
@@ -101,8 +103,7 @@ func ExportProdcuctsCSV(shop *ShopBase) []byte {
 			productListSlice,
 			map[string]*Product{name: &Product{Price: elem.Price, Type: elem.Type}})
 	}
-
-	var page_size int = 100 // 100
+	var page_size int = 500 // 100
 	var pages int = int(len(productListSlice) / page_size)
 	var last_page_add int = int(math.Mod(float64(len(productListSlice)),
 		float64(page_size)))
@@ -124,12 +125,10 @@ func ExportProdcuctsCSV(shop *ShopBase) []byte {
 			go func(ctx context.Context, start int, end int) {
 				ExportProductsCSVHelper(ctx, productListSlice[start:end], res, done, errCh)
 			}(ctx, start, end)
-			time.Sleep(time.Second)
 		}
 	} else {
 		go func(ctx context.Context, last_page_add int) {
 			ExportProductsCSVHelper(ctx, productListSlice[0:last_page_add], res, done, errCh)
-			time.Sleep(time.Second)
 		}(ctx, last_page_add)
 	}
 	result := []byte{}
@@ -140,9 +139,9 @@ Loop:
 			for _, temp := range res1 {
 				result = append(result, temp)
 			}
-
 		loop:
 			for {
+				time.Sleep(time.Microsecond)
 				if len(done) == pages {
 					break loop
 				}
@@ -155,6 +154,7 @@ Loop:
 		case errMsg := <-errCh:
 			fmt.Println(errMsg)
 			break Loop
+		default:
 		}
 	}
 	return result
@@ -194,12 +194,12 @@ func ExportAccountsCSV(shop *ShopBase) []byte {
 			go func(ctx context.Context, start int, end int) {
 				ExportAccountsCSVHelper(ctx, accountListSlice[start:end], res, done, errCh)
 			}(ctx, start, end)
-			time.Sleep(time.Second)
+			//time.Sleep(time.Second)
 		}
 	} else {
 		go func(ctx context.Context, last_page_add int) {
 			ExportAccountsCSVHelper(ctx, accountListSlice[0:last_page_add], res, done, errCh)
-			time.Sleep(time.Second)
+			//time.Sleep(time.Second)
 		}(ctx, last_page_add)
 	}
 	result := []byte{}
@@ -213,6 +213,7 @@ Loop:
 
 		loop:
 			for {
+				time.Sleep(time.Microsecond)
 				if len(done) == pages {
 					break loop
 				}
@@ -225,6 +226,7 @@ Loop:
 		case errMsg := <-errCh:
 			fmt.Println(errMsg)
 			break Loop
+		default:
 		}
 	}
 
@@ -261,12 +263,12 @@ func ImportAccountsCSV(data []byte, shop *ShopBase) error {
 			go func(ctx context.Context, start int, end int) {
 				ImportAccountsCSVHelper(ctx, records[start:end], res, done, errCh)
 			}(ctx, start, end)
-			time.Sleep(time.Second)
+			//time.Sleep(time.Second)
 		}
 	} else {
 		go func(ctx context.Context, last_page_add int) {
 			ImportAccountsCSVHelper(ctx, records[0:last_page_add], res, done, errCh)
-			time.Sleep(time.Second)
+			//time.Sleep(time.Second)
 		}(ctx, last_page_add)
 	}
 	result := map[string]*Account{}
@@ -279,6 +281,7 @@ Loop:
 			}
 		loop:
 			for {
+				time.Sleep(time.Microsecond)
 				if len(done) == pages {
 					break loop
 				}
@@ -307,6 +310,7 @@ Loop:
 		case errMsg := <-errCh:
 			cancel() // выключаю все горутины
 			return errMsg
+		default:
 		}
 	}
 	return nil
