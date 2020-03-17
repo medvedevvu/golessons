@@ -98,8 +98,8 @@ func (accList *AccountsList) Balance(username string) (float32, error) {
 
 		accList.Lock()
 		acc, ok := (*accList).Accounts[username]
-		accList.Unlock()
 		accBalance := acc.Balance
+		accList.Unlock()
 		if !ok {
 			vmsg <- vmsgType{balance: 0,
 				errmsg: fmt.Errorf("Пользователь %s не найден", username)}
