@@ -17,6 +17,7 @@ func (accOrders *AccountsOrders) PlaceOrder(username string, order Order, shop *
 
 	go func() {
 		defer close(done)
+
 		accOrders.Lock()
 		vuser, ok := shop.AccountsListWithMutex.Accounts[username]
 		if !ok {

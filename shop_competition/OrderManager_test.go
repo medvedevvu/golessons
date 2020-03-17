@@ -1,7 +1,6 @@
 package shop_competition
 
 import (
-	"errors"
 	"sync"
 	"testing"
 )
@@ -233,7 +232,7 @@ func TestPlaceOrderAndAddBalanc(t *testing.T) {
 	)
 	names := [2]string{"Kola", "Vasiy"}
 
-	err := errors.New("")
+	var err error
 	func() {
 		monyKolabefore, err = envList.AccountsListWithMutex.Balance(names[0])
 		if err != nil {

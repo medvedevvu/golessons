@@ -80,10 +80,8 @@ func Test2WiceRegisterAccountsList(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		err := accList.Register("Vortis", AccountPremium)
-		if err != nil {
-			t.Logf("User %s Fail with register twice %s ", "Vortis", err)
-		} else {
-			t.Fatalf("Прошла двойная регистрация")
+		if err == nil {
+			t.Fatalf("Прошла двойная регистрация пользователя %s", "Vortis")
 		}
 	}()
 	wg.Wait()
@@ -115,9 +113,18 @@ func TestAddZeroBalance(t *testing.T) {
 func TestAddMinusBalance(t *testing.T) {
 	vtest := NewShopBase().AccountsListWithMutex
 	vtest.Register("Ada", AccountPremium)
-	err := vtest.AddBalance("Ada", -12)
+	var goodBalance, minusBalance, itog float32 = 112, -12, 100
+	err := vtest.AddBalance("Ada", goodBalance)
 	if err != nil {
-		t.Logf(" %v \n", err)
+		t.Errorf(" ошибка добавления нормального значения %s \n", err)
+	}
+	err = vtest.AddBalance("Ada", minusBalance)
+	if err == nil {
+		t.Errorf("добавлено отрицательное значение %v \n", err)
+	}
+	balance, err := vtest.Balance("Ada")
+	if balance == itog {
+		t.Logf(" неверный баланс ожидали %v - получили %v \n", goodBalance, balance)
 	}
 }
 

@@ -55,7 +55,6 @@ func (accList *AccountsList) AddBalance(username string,
 		defer close(done)
 		accList.Lock()
 		acc, ok := (*accList).Accounts[username]
-		accList.Unlock()
 		if !ok {
 			errmsg <- fmt.Errorf("Пользователь %s не найден", username)
 			return
@@ -64,10 +63,8 @@ func (accList *AccountsList) AddBalance(username string,
 			errmsg <- fmt.Errorf("не дoпустимый баланс  %f ", sum)
 			return
 		}
-		accList.Lock()
 		acc.Balance += sum
 		accList.Unlock()
-
 		errmsg <- nil
 		return
 	}()

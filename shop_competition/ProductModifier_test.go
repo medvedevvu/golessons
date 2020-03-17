@@ -269,7 +269,7 @@ Loop:
 	for _, product := range vproductData {
 		_, ok := vproductList.Products[product.name]
 		if !ok {
-			t.Logf(" продукта %s нет в базе \n", product.name)
+			t.Fatalf(" продукта %s нет в базе \n", product.name)
 		}
 		err := vproductList.ModifyProduct(product.name,
 			Product{Price: differentPrice, Type: differentType})
