@@ -17,7 +17,8 @@ func TestManyGorutins(t *testing.T) {
 						   "TestAddBalance" ,
 						   "TestCircleCheckBalance",
 						   "TestAsyncPlaceOrder" ,
-						   "TestPlaceOrderAndAddBalanc"}
+						   "TestPlaceOrderAndAddBalanc",
+						}
 	groutCount := 50
 	var wg sync.WaitGroup
 	for idx := 1; idx <= groutCount; idx++ {
